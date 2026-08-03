@@ -6,9 +6,9 @@
     </mask>
   </defs>
   <g>
-    <circle cx="35.7" cy="60" r="35.7" fill="#0D1A42"></circle>
+    <circle cx="35.7" cy="60" r="35.7" fill="#171A23"></circle>
     <circle cx="84" cy="60" r="35.7" fill="#4A5C93" mask="url(#l)"></circle>
   </g>
-  <text x="140" y="58" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="800" font-size="40" letter-spacing="0.32" fill="#0D1A42">Family Phases</text>
+  <text x="140" y="58" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="800" font-size="40" letter-spacing="0.32" fill="#171A23">Family Phases</text>
   <text x="140" y="86" font-family="Inter, sans-serif" font-weight="700" font-size="12" letter-spacing="4.8" fill="#5A6475">EVERY WEEK, IN PHASE</text>
 </svg>

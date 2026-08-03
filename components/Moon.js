@@ -10,7 +10,7 @@ export default function Moon({ frac = 1, size = 16, title }) {
       {title && <title>{title}</title>}
       <circle cx="10" cy="10" r="8.5" fill="#DCE3F0" />
       <clipPath id={id}><circle cx="10" cy="10" r="8.5" /></clipPath>
-      <circle cx={10 + 17 * (1 - f)} cy="10" r="8.5" fill="#0D1A42" clipPath={`url(#${id})`} />
+      <circle cx={10 + 17 * (1 - f)} cy="10" r="8.5" fill="#171A23" clipPath={`url(#${id})`} />
       <circle cx="10" cy="10" r="8.5" fill="none" stroke="#A9B9DC" strokeWidth="1" />
     </svg>
   );

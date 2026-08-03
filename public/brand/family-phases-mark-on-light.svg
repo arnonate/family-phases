@@ -5,6 +5,6 @@
       <circle cx="60" cy="50" r="34" fill="#000"></circle>
     </mask>
   </defs>
-  <circle cx="34" cy="50" r="34" fill="#0D1A42"></circle>
+  <circle cx="34" cy="50" r="34" fill="#171A23"></circle>
   <circle cx="80" cy="50" r="34" fill="#4A5C93" mask="url(#m)"></circle>
 </svg>

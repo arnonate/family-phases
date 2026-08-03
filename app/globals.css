@@ -1,13 +1,13 @@
 :root{
   /* Family Phases brand */
-  --navy-deep:#071130; --navy:#0D1A42; --mid-navy:#26386F; --slate-blue:#4A5C93;
+  --navy-deep:#0B0D12; --navy:#171A23; --mid-navy:#26386F; --slate-blue:#4A5C93;
   --periwinkle:#6E84BD; --soft-blue:#8B9ECF; --moonlight:#A9B9DC;
   --pale-moon:#C6D0E8; --full-moon:#DCE3F0; --paper:#F9F9F1;
   --me:var(--mid-navy); --me-soft:var(--pale-moon); --me-softer:#EDF1F9;
   --cp:#ea8c1f; --cp-soft:#fef3c7; --cp-softer:#fffbeb;
   --bg:var(--paper); --card:#ffffff; --ink:var(--navy); --muted:#5A6475;
   --line:#E3E7F0; --green:#16a34a; --red:#dc2626; --purple:#7c3aed;
-  --radius:14px; --shadow:0 1px 3px rgba(13,26,66,.08),0 4px 14px rgba(13,26,66,.05);
+  --radius:14px; --shadow:0 1px 3px rgba(23,26,35,.08),0 4px 14px rgba(23,26,35,.05);
   --font-body:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --font-brand:'Plus Jakarta Sans','Inter',sans-serif;
 }
