@@ -5,15 +5,19 @@ import { supa } from '@/lib/supabase/client';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   async function send(e) {
     e.preventDefault();
+    if (busy) return;
     setErr('');
+    setBusy(true);
     const { error } = await supa().auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
+    setBusy(false);
     if (error) setErr(error.message);
     else setSent(true);
   }
@@ -31,7 +35,9 @@ export default function Login() {
               <label>Email</label>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
             </div>
-            <button className="btn" style={{ width: '100%' }}>Email me a sign-in link</button>
+            <button type="submit" className="btn" disabled={busy} style={{ width: '100%' }}>
+              {busy ? 'Sending…' : 'Email me a sign-in link'}
+            </button>
             {err && <p style={{ color: 'var(--red)', marginTop: 10, fontSize: 13 }}>{err}</p>}
           </form>
         )}
