@@ -4,6 +4,7 @@ import { useStore, sideName, mySide, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon from '@/components/Moon';
+import { ArrowLeftRight, CalendarDays } from 'lucide-react';
 import {
   ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer,
 } from '@/lib/custody';
@@ -72,7 +73,7 @@ export default function CalendarPage() {
         <div className="approval-banner">
           {pendingDevs.map(d => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '4px 0' }}>
-              <span>📅 <b>Proposed:</b> kids with <b>{sideName(d.arr, d.who)}</b> {fmt(d.start_date)}
+              <span><CalendarDays size={14} style={{ verticalAlign: '-2px' }} /> <b>Proposed:</b> kids with <b>{sideName(d.arr, d.who)}</b> {fmt(d.start_date)}
                 {d.end_date !== d.start_date && <> – {fmt(d.end_date)}</>} {d.note && <>· {d.note}</>}</span>
               {d.proposed_by !== me.id && mySide(d.arr, me.id) && (
                 <span style={{ display: 'flex', gap: 6 }}>
@@ -116,7 +117,7 @@ export default function CalendarPage() {
                       title={`${info.kidsHome.length} of ${info.totalKids} kids home`} />
                   </span>
                 )}
-                {info.transfer && <span className="transfer-flag" style={{ top: 22 }} title="Transfer day">🔁</span>}
+                {info.transfer && <span className="transfer-flag" style={{ top: 22 }} title="Transfer day"><ArrowLeftRight size={10} strokeWidth={2.5} /></span>}
                 {info.who && info.who !== 'mix' && (
                   <div className={`who-tag ${info.who}`}>
                     {info.who === 'h' ? (active ? sideName(active, 'h') : 'Home') : (active ? sideName(active, 'c') : 'Away')}
@@ -138,7 +139,7 @@ export default function CalendarPage() {
         <div className="legend">
           <span><i style={{ background: 'var(--me-soft)' }} />{active ? `With ${sideName(active, 'h')}` : 'All kids home'}</span>
           <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${sideName(active, 'c')}` : 'All kids away'}</span>
-          <span>🔁 Transfer day</span>
+          <span><ArrowLeftRight size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Transfer day</span>
           <span><Moon size={13} frac={0.5} /> Navy fill = share of kids home</span>
         </div>
       </div>

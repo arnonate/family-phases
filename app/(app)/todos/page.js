@@ -4,6 +4,7 @@ import { useStore, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
+import { User } from 'lucide-react';
 
 export default function TodosPage() {
   const store = useStore();
@@ -47,7 +48,7 @@ export default function TodosPage() {
                 <div className="t-meta">
                   {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
                   {t.child_id && <> · {kidName(t.arr, t.child_id)}</>}
-                  {assignee && <> · 👤 {assignee}{t.assigned_to === me.id && ' (you)'}</>}
+                  {assignee && <> · <User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</>}
                   {arrangements.length > 1 && <> · {t.arr.name}</>}
                 </div>
               </div>

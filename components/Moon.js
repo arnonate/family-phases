@@ -18,8 +18,8 @@ export default function Moon({ frac = 1, size = 16, title }) {
 
 export function phaseLabel(home, total) {
   if (!total) return '';
-  if (home === total) return 'Full house 🌕';
-  if (home === 0) return 'Quiet night 🌑';
+  if (home === total) return 'Full house';
+  if (home === 0) return 'Quiet night';
   if (home / total >= 0.5) return `${home} of ${total} home`;
   return `${home} of ${total} home`;
 }

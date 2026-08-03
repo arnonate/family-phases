@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import Setup from '@/components/Setup';
+import { Bell } from 'lucide-react';
 
 const NAV = [
   ['/dashboard', 'Dashboard'],
@@ -53,7 +54,7 @@ export default function Shell({ children }) {
           </nav>
         )}
         <button className="bell" title="Notifications" onClick={() => { setShowNotifs(v => !v); if (!showNotifs) markAllRead(); }}>
-          🔔{unread > 0 && <span className="n">{unread}</span>}
+          <Bell size={18} strokeWidth={2} />{unread > 0 && <span className="n">{unread}</span>}
         </button>
         <button className="btn small subtle" onClick={signOut}>Sign out</button>
       </header>

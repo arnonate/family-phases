@@ -6,6 +6,7 @@ import {
   todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance,
 } from '@/lib/custody';
 import Moon, { phaseLabel } from '@/components/Moon';
+import { ArrowLeftRight } from 'lucide-react';
 
 export default function Dashboard() {
   const store = useStore();
@@ -110,7 +111,7 @@ export default function Dashboard() {
                   return (
                     <div key={d} className={`ws-day ${w && w !== 'mix' ? 'who-' + w : ''}`}>
                       <b>{pd(d).toLocaleDateString(undefined, { weekday: 'short' })}</b>
-                      {pd(d).getDate()}{isTransfer(a.schedule, a.deviations, a.children, d) ? ' 🔁' : ''}
+                      {pd(d).getDate()}{isTransfer(a.schedule, a.deviations, a.children, d) && <> <ArrowLeftRight size={9} strokeWidth={2.5} /></>}
                       <div style={{ fontWeight: 700, fontSize: 10.5, color: w === 'h' ? 'var(--me)' : w === 'c' ? '#b45309' : 'var(--purple)' }}>
                         {w ? (w === 'mix' ? 'Split' : sideName(a, w)) : ''}
                       </div>
@@ -125,7 +126,7 @@ export default function Dashboard() {
 
       <div className="card">
         <h2>Open to-dos <Link href="/todos" className="sub">see all →</Link></h2>
-        {openTodos.length === 0 && <div className="empty">No open to-dos 🎉</div>}
+        {openTodos.length === 0 && <div className="empty">All clear — no open to-dos.</div>}
         {openTodos.map(t => {
           const overdue = t.due && t.due < tod;
           return (

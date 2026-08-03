@@ -4,6 +4,7 @@ import { useStore, sideName, mySide, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
+import { Banknote, Paperclip } from 'lucide-react';
 
 export default function ExpensesPage() {
   const store = useStore();
@@ -86,7 +87,7 @@ export default function ExpensesPage() {
         <div className="approval-banner">
           {pending.map(e => (
             <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '4px 0' }}>
-              <span>💵 <b>{money(Number(e.amount))}</b> {e.category.toLowerCase()} — {e.description || 'no description'}
+              <span><Banknote size={14} style={{ verticalAlign: '-2px' }} /> <b>{money(Number(e.amount))}</b> {e.category.toLowerCase()} — {e.description || 'no description'}
                 {' '}(paid by {sideName(arr, e.paid_by)}, over the {money(Number(arr.approval_threshold))} threshold)</span>
               {e.created_by !== me.id && side ? (
                 <span style={{ display: 'flex', gap: 6 }}>
@@ -141,7 +142,7 @@ export default function ExpensesPage() {
                   <td>{fmt(e.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
                   <td>{(e.child_ids || []).map(id => kidName(arr, id)).join(', ') || '—'}</td>
                   <td><span className="pill cat">{e.category}</span></td>
-                  <td>{e.description}{e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt">📎</a></>}</td>
+                  <td>{e.description}{e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}</td>
                   <td className="right">{money(Number(e.amount))}</td>
                   <td><span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span></td>
                   <td className="right">{money(Number(e.amount) * arr.split_pct / 100)}</td>
