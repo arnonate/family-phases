@@ -40,17 +40,25 @@ function General({ arr, store }) {
   const [split, setSplit] = useState(arr.split_pct);
   const [threshold, setThreshold] = useState(Number(arr.approval_threshold));
   const [time, setTime] = useState(arr.transfer_time || '');
-  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const dirty = name !== arr.name
+    || hLabel !== (arr.h_label || '')
+    || cLabel !== (arr.c_label || '')
+    || +split !== arr.split_pct
+    || +threshold !== Number(arr.approval_threshold)
+    || time !== (arr.transfer_time || '');
 
   async function save() {
+    setBusy(true);
     await supa().from('arrangements').update({
       name, h_label: hLabel || null, c_label: cLabel || null,
       split_pct: Math.min(100, Math.max(0, +split || 0)),
       approval_threshold: Math.max(0, +threshold || 0),
       transfer_time: time || null,
     }).eq('id', arr.id);
-    setMsg('Saved ✓'); setTimeout(() => setMsg(''), 2000);
-    store.refresh();
+    await store.refresh();
+    setBusy(false);
   }
 
   return (
@@ -71,7 +79,9 @@ function General({ arr, store }) {
       </div>
       <div className="field"><label>Usual transfer time</label>
         <input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 6:00 PM" /></div>
-      <button className="btn" onClick={save}>Save</button> <span className="muted" style={{ fontSize: 13 }}>{msg}</span>
+      <button className="btn" disabled={busy || !dirty} onClick={save}>
+        {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
+      </button>
     </div>
   );
 }
@@ -123,15 +133,21 @@ function Schedule({ arr, store }) {
   const [type, setType] = useState(sch.type || 'weeks');
   const [anchor, setAnchor] = useState(sch.anchor_date || '');
   const [cycle, setCycle] = useState(sch.cycle?.length === 14 ? sch.cycle : PRESETS.weeks);
-  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const savedCycle = sch.cycle?.length === 14 ? sch.cycle : PRESETS.weeks;
+  const dirty = type !== (sch.type || 'weeks')
+    || anchor !== (sch.anchor_date || '')
+    || (type === 'custom' && JSON.stringify(cycle) !== JSON.stringify(savedCycle));
 
   async function save() {
+    setBusy(true);
     await supa().from('schedules').upsert({
       arrangement_id: arr.id, type, anchor_date: anchor || null,
       cycle: type === 'custom' ? cycle : [],
     });
-    setMsg('Saved ✓'); setTimeout(() => setMsg(''), 2000);
-    store.refresh();
+    await store.refresh();
+    setBusy(false);
   }
 
   return (
@@ -157,7 +173,9 @@ function Schedule({ arr, store }) {
           </div>
         </div>
       )}
-      <button className="btn" onClick={save}>Save</button> <span className="muted" style={{ fontSize: 13 }}>{msg}</span>
+      <button className="btn" disabled={busy || !dirty} onClick={save}>
+        {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
+      </button>
     </div>
   );
 }
