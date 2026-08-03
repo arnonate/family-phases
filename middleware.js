@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
   let response = NextResponse.next({ request });
+  // Never hard-crash the site from middleware: if anything below throws
+  // (e.g. missing env vars), fall through and let pages handle it.
+  try {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -26,9 +29,13 @@ export async function middleware(request) {
   if (user && pathname.startsWith('/login')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
+  } catch (e) {
+    console.error('middleware error:', e?.message);
+  }
   return response;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|ico)$).*)'],
+  // API routes handle their own auth (iCal by token, cron/health are public)
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|ico)$).*)'],
 };
