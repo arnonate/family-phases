@@ -21,8 +21,7 @@ export default function Login() {
   return (
     <div className="login-box">
       <img src="/brand/family-phases-lockup-on-light.svg" alt="Family Phases — every week, in phase"
-        style={{ width: '100%', maxWidth: 360, marginBottom: 8, display: 'block' }} />
-      <p className="muted" style={{ marginBottom: 20 }}>Schedules, expenses, and reminders for both households.</p>
+        style={{ width: '100%', maxWidth: 360, marginBottom: 16, display: 'block' }} />
       <div className="card">
         {sent ? (
           <p>Check <b>{email}</b> for a sign-in link. You can close this tab.</p>
