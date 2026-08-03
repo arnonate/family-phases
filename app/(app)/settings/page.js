@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, sideName } from '@/lib/store';
+import { useStore, sideName, mySide } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
 import { toast } from '@/components/Toast';
@@ -74,7 +74,7 @@ function General({ arr, store }) {
           <input value={cLabel} onChange={e => setCLabel(e.target.value)} placeholder="used until they sign up" /></div>
       </div>
       <div className="row">
-        <div className="field"><label>{sideName(arr, 'h')}&apos;s share</label>
+        <div className="field"><label>{mySide(arr, store.me.id) === 'h' ? 'My share' : `${sideName(arr, 'h')}'s share`}</label>
           <UnitInput unit="%" type="number" min="0" max="100" value={split} onChange={e => setSplit(e.target.value)} /></div>
         <div className="field"><label>Approval needed above</label>
           <UnitInput unit="USD" type="number" min="0" value={threshold} onChange={e => setThreshold(e.target.value)} /></div>

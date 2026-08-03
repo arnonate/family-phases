@@ -117,7 +117,7 @@ export default function ExpensesPage() {
         <div className="card"><h2>This month (approved)</h2>
           <div className="stat">{money(mTot)}<small>{mExp.length} expense{mExp.length === 1 ? '' : 's'}</small></div>
         </div>
-        <div className="card"><h2>{sideName(arr, 'h')}&apos;s share this month</h2>
+        <div className="card"><h2>{side === 'h' ? 'My share this month' : `${sideName(arr, 'h')}'s share this month`}</h2>
           <div className="stat">{money(mTot * arr.split_pct / 100)}<small>{arr.split_pct}% of shared costs</small></div>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function ExpensesPage() {
             <table><tbody>
               <tr><th>Date</th><th>Child</th><th>Category</th><th>Description</th>
                 <th className="right">Amount</th><th>Paid by</th>
-                <th className="right">{sideName(arr, 'h')}&apos;s share</th><th>Status</th><th></th></tr>
+                <th className="right">{side === 'h' ? 'My share' : `${sideName(arr, 'h')}'s share`}</th><th>Status</th><th></th></tr>
               {rows.map(e => (
                 <tr key={e.id}>
                   <td>{fmt(e.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
