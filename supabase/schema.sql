@@ -196,6 +196,19 @@ returns boolean language sql security definer stable set search_path = public as
        or (am.user_id = auth.uid() and hm.user_id = other));
 $$;
 
+-- Bootstrap: create a household and its first membership atomically.
+-- Runs with elevated rights because RLS can't express "creating the thing
+-- that grants you permission to see it".
+create or replace function public.create_household_with_membership(hid uuid, hname text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+  insert into households (id, name, created_by) values (hid, hname, auth.uid());
+  insert into household_members (household_id, user_id) values (hid, auth.uid());
+end $$;
+
 -- Claim pending invites for the signed-in user's email. Called by the app after login.
 create or replace function public.claim_invites()
 returns int language plpgsql security definer set search_path = public as $$

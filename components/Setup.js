@@ -25,12 +25,10 @@ export default function Setup() {
       // policies, which require memberships that don't exist until a step later.
       const houseId = crypto.randomUUID();
       const arrId = crypto.randomUUID();
-      const { error: e1 } = await s.from('households')
-        .insert({ id: houseId, name: houseName, created_by: me.id });
+      const { error: e1 } = await s.rpc('create_household_with_membership', {
+        hid: houseId, hname: houseName,
+      });
       if (e1) throw e1;
-      const { error: e2 } = await s.from('household_members')
-        .insert({ household_id: houseId, user_id: me.id });
-      if (e2) throw e2;
       const { error: e3 } = await s.from('arrangements').insert({
         id: arrId, household_id: houseId, name: arrName,
         split_pct: split, approval_threshold: threshold,
