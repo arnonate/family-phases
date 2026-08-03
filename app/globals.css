@@ -127,4 +127,36 @@ tr:last-child td{border-bottom:none}
 .login-box{max-width:400px;margin:12vh auto;padding:0 16px}
 .approval-banner{background:#fef9c3;border:1.5px solid #fde047;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:14px}
 .center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:10px;color:var(--muted)}
-@media(max-width:640px){.cal-cell{min-height:58px;padding:4px 5px}.cal-cell .who-tag{display:none}main.wrap{padding:14px}}
+/* ---------- mobile ---------- */
+@media(max-width:640px){
+  main.wrap{padding:12px 10px 28px}
+  /* notch / safe areas (viewport-fit=cover) */
+  header.top{padding:calc(8px + env(safe-area-inset-top)) 12px 8px;gap:10px}
+  header.top .brand img{height:22px}
+  header.top h1{font-size:16px}
+  /* one-row scrollable nav */
+  nav.main{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;order:3;flex-basis:100%}
+  nav.main::-webkit-scrollbar{display:none}
+  nav.main a{padding:8px 12px;white-space:nowrap}
+  /* every table scrolls sideways instead of breaking layout */
+  .card table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  /* prevent iOS zoom-on-focus (fires below 16px) */
+  input,select,textarea{font-size:16px}
+  /* calendar */
+  .cal-grid{gap:3px}
+  .cal-cell{min-height:56px;padding:3px 4px;border-radius:8px}
+  .cal-cell .who-tag{display:none}
+  .transfer-flag{font-size:9px}
+  /* cards & stats */
+  .card{padding:14px}
+  .stat{font-size:22px}
+  .grid{gap:10px}
+  /* touch targets */
+  button.btn{min-height:38px}
+  button.btn.small{min-height:32px}
+  .todo input[type=checkbox]{width:22px;height:22px}
+  /* modals get more room */
+  .overlay{padding:14px 8px}
+  .modal{padding:16px}
+  .notif-pop{right:6px;left:6px;width:auto}
+}
