@@ -389,5 +389,37 @@ create policy "receipts write" on storage.objects for insert
 create policy "receipts delete" on storage.objects for delete
   using (bucket_id = 'receipts' and public.can_access_arrangement(((storage.foldername(name))[1])::uuid));
 
+-- ============ TO-DO COMMENTS ============
+
+create table todo_comments (
+  id uuid primary key default gen_random_uuid(),
+  todo_id uuid not null references todos on delete cascade,
+  arrangement_id uuid not null references arrangements on delete cascade,
+  author uuid references profiles(id),
+  body text not null,
+  created_at timestamptz default now()
+);
+
+alter table todo_comments enable row level security;
+create policy "comments read" on todo_comments for select
+  using (public.can_access_arrangement(arrangement_id));
+create policy "comments write" on todo_comments for insert
+  with check (public.can_access_arrangement(arrangement_id) and author = auth.uid());
+create policy "comments delete own" on todo_comments for delete
+  using (author = auth.uid());
+
+create or replace function public.trg_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text; t text;
+begin
+  select coalesce(name, email) into nm from profiles where id = auth.uid();
+  select title into t from todos where id = new.todo_id;
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'todo_comment',
+    nm || ' commented on "' || coalesce(t, 'a to-do') || '": ' || left(new.body, 120));
+  return new;
+end $$;
+create trigger comment_notify after insert on todo_comments
+  for each row execute function public.trg_comment_notify();
+
 -- ============ REALTIME ============
-alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules;
+alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments;

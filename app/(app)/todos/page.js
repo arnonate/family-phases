@@ -4,7 +4,7 @@ import { useStore, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
-import { User } from 'lucide-react';
+import { User, MessageCircle, X, SendHorizontal } from 'lucide-react';
 import { toast } from '@/components/Toast';
 
 export default function TodosPage() {
@@ -12,6 +12,7 @@ export default function TodosPage() {
   const { arrangements, me } = store;
   const [sel, setSel] = useArrSelection(arrangements, true);
   const [showAdd, setShowAdd] = useState(false);
+  const [openThread, setOpenThread] = useState(null); // todo id
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
   const shown = sel === 'all' ? arrangements : arrangements.filter(a => a.id === sel);
@@ -41,19 +42,28 @@ export default function TodosPage() {
         {todos.map(t => {
           const overdue = !t.done && t.due && t.due < tod;
           const assignee = assigneeName(t);
+          const n = t.comments?.length || 0;
+          const open = openThread === t.id;
           return (
-            <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
-              <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
-              <div style={{ flex: 1 }}>
-                <div className="t-title">{t.title}</div>
-                <div className="t-meta">
-                  {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
-                  {t.child_id && <> · {kidName(t.arr, t.child_id)}</>}
-                  {assignee && <> · <User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</>}
-                  {arrangements.length > 1 && <> · {t.arr.name}</>}
+            <div key={t.id}>
+              <div className={`todo ${t.done ? 'done' : ''}`}>
+                <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
+                <div style={{ flex: 1 }}>
+                  <div className="t-title">{t.title}</div>
+                  <div className="t-meta">
+                    {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
+                    {t.child_id && <> · {kidName(t.arr, t.child_id)}</>}
+                    {assignee && <> · <User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</>}
+                    {arrangements.length > 1 && <> · {t.arr.name}</>}
+                  </div>
                 </div>
+                <button className={`thread-btn ${open || n ? 'has' : ''}`} title="Comments"
+                  onClick={() => setOpenThread(open ? null : t.id)}>
+                  <MessageCircle size={14} />{n > 0 && <span>{n}</span>}
+                </button>
+                <button className="btn danger small" onClick={() => remove(t)}>✕</button>
               </div>
-              <button className="btn danger small" onClick={() => remove(t)}>✕</button>
+              {open && <Thread todo={t} me={me} store={store} />}
             </div>
           );
         })}
@@ -62,6 +72,54 @@ export default function TodosPage() {
         defaultArr={sel === 'all' ? arrangements[0] : arrangements.find(a => a.id === sel)}
         me={me} store={store} onClose={() => setShowAdd(false)} />}
     </>
+  );
+}
+
+function Thread({ todo, me, store }) {
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function post(e) {
+    e.preventDefault();
+    if (!body.trim() || busy) return;
+    setBusy(true);
+    const { error } = await supa().from('todo_comments').insert({
+      todo_id: todo.id, arrangement_id: todo.arrangement_id, author: me.id, body: body.trim(),
+    });
+    setBusy(false);
+    if (error) { toast.error(`Couldn't post comment: ${error.message}`); return; }
+    setBody('');
+    store.refresh();
+  }
+  async function removeComment(c) {
+    const { error } = await supa().from('todo_comments').delete().eq('id', c.id);
+    if (error) toast.error(`Couldn't delete comment: ${error.message}`);
+    store.refresh();
+  }
+  const when = ts => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+  return (
+    <div className="thread">
+      {(todo.comments || []).map(c => (
+        <div key={c.id} className="comment">
+          <div className="c-head">
+            <b>{c.profiles?.name || c.profiles?.email || 'Someone'}</b>
+            <span>{when(c.created_at)}</span>
+            {c.author === me.id && (
+              <button aria-label="Delete comment" onClick={() => removeComment(c)}><X size={12} /></button>
+            )}
+          </div>
+          <div className="c-body">{c.body}</div>
+        </div>
+      ))}
+      {!todo.comments?.length && <div className="muted" style={{ fontSize: 12.5, padding: '2px 0 6px' }}>No comments yet.</div>}
+      <form className="c-form" onSubmit={post}>
+        <input value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…" />
+        <button type="submit" className="btn small" disabled={busy || !body.trim()} aria-label="Post comment">
+          <SendHorizontal size={14} />
+        </button>
+      </form>
+    </div>
   );
 }
 

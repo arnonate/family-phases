@@ -138,6 +138,22 @@ tr:last-child td{border-bottom:none}
 .toast.success{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
 .toast button{background:none;border:none;cursor:pointer;color:inherit;padding:2px;display:flex;flex:none}
 .day-table{table-layout:fixed;width:100%}
+/* to-do comment threads */
+.thread-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--muted);padding:6px 4px;font-size:12px;font-weight:700}
+.thread-btn.has{color:var(--slate-blue)}
+.thread{margin:0 0 6px 28px;padding:8px 12px;background:var(--me-softer);border-radius:10px;border:1.5px solid var(--line)}
+.comment{padding:6px 0;border-bottom:1px solid var(--line)}
+.comment:last-of-type{border-bottom:none}
+.c-head{display:flex;align-items:baseline;gap:8px;font-size:12px}
+.c-head b{color:var(--ink)}
+.c-head span{color:var(--muted);font-size:11.5px}
+.c-head button{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex}
+.c-head button:hover{color:var(--red)}
+.c-body{font-size:13.5px;margin-top:1px;white-space:pre-wrap}
+.c-form{display:flex;gap:6px;margin-top:8px}
+.c-form input{font-size:13.5px;padding:7px 10px}
+.c-form .btn{flex:none;display:inline-flex;align-items:center}
+@media(max-width:640px){.thread{margin-left:8px}}
 .notif-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-size:14px}
 .notif-head button{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex}
 .notif-head button:hover{color:var(--ink)}
