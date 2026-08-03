@@ -4,8 +4,9 @@ import { useStore, sideName, mySide, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon from '@/components/Moon';
-import { ArrowLeftRight, CalendarDays } from 'lucide-react';
+import { ArrowLeftRight, CalendarDays, MessageCircle } from 'lucide-react';
 import { toast } from '@/components/Toast';
+import CommentThread from '@/components/CommentThread';
 import {
   ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer,
 } from '@/lib/custody';
@@ -34,7 +35,9 @@ export default function CalendarPage() {
     const kidsHome = shown.flatMap(a =>
       a.children.filter(k => custodyFor(a.schedule, a.deviations, dstr, k.id) === 'h'));
     const totalKids = shown.reduce((s, a) => s + a.children.length, 0);
-    return { who, transfer, dev, kidsHome, totalKids };
+    const commentCount = shown.reduce((s, a) =>
+      s + (a.day_comments || []).filter(c => c.date === dstr).length, 0);
+    return { who, transfer, dev, kidsHome, totalKids, commentCount };
   }
 
   const [y, m] = ym;
@@ -134,6 +137,11 @@ export default function CalendarPage() {
                     </div>
                   </>
                 )}
+                {info.commentCount > 0 && (
+                  <span className="cmt-flag" title={`${info.commentCount} comment${info.commentCount === 1 ? '' : 's'}`}>
+                    <MessageCircle size={9} strokeWidth={2.5} />{info.commentCount}
+                  </span>
+                )}
                 {info.dev && <span className="dev-flag" title="Deviation from normal schedule" />}
               </div>
             );
@@ -166,7 +174,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {dayModal && <DayModal date={dayModal} shown={shown} me={me}
+      {dayModal && <DayModal date={dayModal} shown={shown} me={me} store={store}
         onClose={() => setDayModal(null)}
         onPropose={d => { setDayModal(null); setDevModal({ date: d }); }} />}
       {devModal && <DeviationModal init={devModal} arrangements={arrangements}
@@ -176,26 +184,54 @@ export default function CalendarPage() {
   );
 }
 
-function DayModal({ date, shown, onClose, onPropose }) {
+function DayModal({ date, shown, me, store, onClose, onPropose }) {
+  const [arrId, setArrId] = useState(shown[0].id);
+  const comments = shown
+    .flatMap(a => (a.day_comments || [])
+      .filter(c => c.date === date)
+      .map(c => ({ ...c, tag: shown.length > 1 ? a.name : null })))
+    .sort((x, y) => (x.created_at < y.created_at ? -1 : 1));
+
   return (
     <Modal title={fmt(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} onClose={onClose}>
-      {shown.map(a => (
-        <div key={a.id} style={{ marginBottom: 10 }}>
-          {shown.length > 1 && <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{a.name}</div>}
-          <table className="day-table"><tbody>
-            {a.children.map(k => {
-              const w = custodyFor(a.schedule, a.deviations, date, k.id);
-              return (
-                <tr key={k.id}>
-                  <td><span className="kid-dot" style={{ background: k.color }} />{k.name}</td>
-                  <td>{w ? <span className={`pill ${w}`}>{sideName(a, w)}</span> : '—'}</td>
-                </tr>
-              );
-            })}
-            {!a.children.length && <tr><td className="muted">Add children in Settings</td></tr>}
-          </tbody></table>
-        </div>
-      ))}
+      {shown.map(a => {
+        const groups = { h: [], c: [] };
+        a.children.forEach(k => {
+          const w = custodyFor(a.schedule, a.deviations, date, k.id);
+          if (w) groups[w].push(k);
+        });
+        return (
+          <div key={a.id} className="day-kids">
+            {shown.length > 1 && <b>{a.name}</b>}
+            {['h', 'c'].map(s => groups[s].length > 0 && (
+              <span key={s} className="side-group">
+                <span className={`pill ${s}`}>{sideName(a, s)}</span>
+                {groups[s].map(k => (
+                  <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>
+                ))}
+              </span>
+            ))}
+            {!a.children.length && <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>}
+          </div>
+        );
+      })}
+      <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 6px' }}>Conversation</div>
+      <CommentThread
+        comments={comments}
+        meId={me.id}
+        refresh={store.refresh}
+        emptyText="No comments for this day yet."
+        controls={shown.length > 1 && (
+          <select value={arrId} onChange={e => setArrId(e.target.value)}
+            style={{ width: 'auto', flex: 'none', fontSize: 13, padding: '7px 30px 7px 8px' }}>
+            {shown.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        )}
+        onPost={async body => (await supa().from('day_comments').insert({
+          arrangement_id: arrId, date, author: me.id, body,
+        })).error}
+        onDelete={async c => (await supa().from('day_comments').delete().eq('id', c.id)).error}
+      />
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Close</button>
         <button className="btn" onClick={() => onPropose(date)}>Propose change</button>

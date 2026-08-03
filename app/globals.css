@@ -137,7 +137,11 @@ tr:last-child td{border-bottom:none}
 .toast.error{border-color:#fecaca;background:#fef2f2;color:#991b1b}
 .toast.success{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
 .toast button{background:none;border:none;cursor:pointer;color:inherit;padding:2px;display:flex;flex:none}
-.day-table{table-layout:fixed;width:100%}
+.day-kids{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:5px 0;font-size:13px;border-bottom:1px solid var(--line)}
+.day-kids b{font-size:12px;flex:none}
+.side-group{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dk-kid{display:inline-flex;align-items:center;white-space:nowrap}
+.cmt-flag{position:absolute;bottom:4px;left:6px;display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:var(--slate-blue)}
 /* to-do comment threads */
 .thread-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--muted);padding:6px 4px;font-size:12px;font-weight:700}
 .thread-btn.has{color:var(--slate-blue)}

@@ -421,5 +421,37 @@ end $$;
 create trigger comment_notify after insert on todo_comments
   for each row execute function public.trg_comment_notify();
 
+-- ============ DAY COMMENTS (calendar conversations) ============
+
+create table day_comments (
+  id uuid primary key default gen_random_uuid(),
+  arrangement_id uuid not null references arrangements on delete cascade,
+  date date not null,
+  author uuid references profiles(id),
+  body text not null,
+  created_at timestamptz default now()
+);
+create index day_comments_date on day_comments (arrangement_id, date);
+
+alter table day_comments enable row level security;
+create policy "day comments read" on day_comments for select
+  using (public.can_access_arrangement(arrangement_id));
+create policy "day comments write" on day_comments for insert
+  with check (public.can_access_arrangement(arrangement_id) and author = auth.uid());
+create policy "day comments delete own" on day_comments for delete
+  using (author = auth.uid());
+
+create or replace function public.trg_day_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name, email) into nm from profiles where id = auth.uid();
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'day_comment',
+    nm || ' commented on ' || to_char(new.date, 'Mon FMDD') || ': ' || left(new.body, 120));
+  return new;
+end $$;
+create trigger day_comment_notify after insert on day_comments
+  for each row execute function public.trg_day_comment_notify();
+
 -- ============ REALTIME ============
-alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments;
+alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments, day_comments;

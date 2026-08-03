@@ -4,8 +4,9 @@ import { useStore, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
-import { User, MessageCircle, X, SendHorizontal } from 'lucide-react';
+import { User, MessageCircle } from 'lucide-react';
 import { toast } from '@/components/Toast';
+import CommentThread from '@/components/CommentThread';
 
 export default function TodosPage() {
   const store = useStore();
@@ -76,50 +77,16 @@ export default function TodosPage() {
 }
 
 function Thread({ todo, me, store }) {
-  const [body, setBody] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  async function post(e) {
-    e.preventDefault();
-    if (!body.trim() || busy) return;
-    setBusy(true);
-    const { error } = await supa().from('todo_comments').insert({
-      todo_id: todo.id, arrangement_id: todo.arrangement_id, author: me.id, body: body.trim(),
-    });
-    setBusy(false);
-    if (error) { toast.error(`Couldn't post comment: ${error.message}`); return; }
-    setBody('');
-    store.refresh();
-  }
-  async function removeComment(c) {
-    const { error } = await supa().from('todo_comments').delete().eq('id', c.id);
-    if (error) toast.error(`Couldn't delete comment: ${error.message}`);
-    store.refresh();
-  }
-  const when = ts => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-
   return (
-    <div className="thread">
-      {(todo.comments || []).map(c => (
-        <div key={c.id} className="comment">
-          <div className="c-head">
-            <b>{c.profiles?.name || c.profiles?.email || 'Someone'}</b>
-            <span>{when(c.created_at)}</span>
-            {c.author === me.id && (
-              <button aria-label="Delete comment" onClick={() => removeComment(c)}><X size={12} /></button>
-            )}
-          </div>
-          <div className="c-body">{c.body}</div>
-        </div>
-      ))}
-      {!todo.comments?.length && <div className="muted" style={{ fontSize: 12.5, padding: '2px 0 6px' }}>No comments yet.</div>}
-      <form className="c-form" onSubmit={post}>
-        <input value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…" />
-        <button type="submit" className="btn small" disabled={busy || !body.trim()} aria-label="Post comment">
-          <SendHorizontal size={14} />
-        </button>
-      </form>
-    </div>
+    <CommentThread
+      comments={todo.comments || []}
+      meId={me.id}
+      refresh={store.refresh}
+      onPost={async body => (await supa().from('todo_comments').insert({
+        todo_id: todo.id, arrangement_id: todo.arrangement_id, author: me.id, body,
+      })).error}
+      onDelete={async c => (await supa().from('todo_comments').delete().eq('id', c.id)).error}
+    />
   );
 }
 
