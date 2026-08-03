@@ -182,7 +182,7 @@ function DayModal({ date, shown, onClose, onPropose }) {
       {shown.map(a => (
         <div key={a.id} style={{ marginBottom: 10 }}>
           {shown.length > 1 && <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{a.name}</div>}
-          <table><tbody>
+          <table className="day-table"><tbody>
             {a.children.map(k => {
               const w = custodyFor(a.schedule, a.deviations, date, k.id);
               return (

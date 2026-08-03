@@ -137,6 +137,7 @@ tr:last-child td{border-bottom:none}
 .toast.error{border-color:#fecaca;background:#fef2f2;color:#991b1b}
 .toast.success{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
 .toast button{background:none;border:none;cursor:pointer;color:inherit;padding:2px;display:flex;flex:none}
+.day-table{table-layout:fixed;width:100%}
 .notif-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-size:14px}
 .notif-head button{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex}
 .notif-head button:hover{color:var(--ink)}
