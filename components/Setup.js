@@ -21,22 +21,26 @@ export default function Setup() {
     const s = supa();
     try {
       if (name.trim()) await s.from('profiles').update({ name: name.trim() }).eq('id', me.id);
-      const { data: house, error: e1 } = await s.from('households')
-        .insert({ name: houseName, created_by: me.id }).select().single();
+      // IDs generated client-side: inserting with RETURNING would trip the read
+      // policies, which require memberships that don't exist until a step later.
+      const houseId = crypto.randomUUID();
+      const arrId = crypto.randomUUID();
+      const { error: e1 } = await s.from('households')
+        .insert({ id: houseId, name: houseName, created_by: me.id });
       if (e1) throw e1;
       const { error: e2 } = await s.from('household_members')
-        .insert({ household_id: house.id, user_id: me.id });
+        .insert({ household_id: houseId, user_id: me.id });
       if (e2) throw e2;
-      const { data: arr, error: e3 } = await s.from('arrangements').insert({
-        household_id: house.id, name: arrName,
+      const { error: e3 } = await s.from('arrangements').insert({
+        id: arrId, household_id: houseId, name: arrName,
         split_pct: split, approval_threshold: threshold,
         h_label: name.trim() || 'Me', c_label: cpName.trim() || 'Co-parent',
-      }).select().single();
+      });
       if (e3) throw e3;
       const { error: e4 } = await s.from('arrangement_members')
-        .insert({ arrangement_id: arr.id, user_id: me.id, role: 'household' });
+        .insert({ arrangement_id: arrId, user_id: me.id, role: 'household' });
       if (e4) throw e4;
-      await s.from('schedules').insert({ arrangement_id: arr.id, type: 'weeks' });
+      await s.from('schedules').insert({ arrangement_id: arrId, type: 'weeks' });
       await refresh();
     } catch (ex) {
       setErr(ex.message || 'Something went wrong.');
