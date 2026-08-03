@@ -255,7 +255,7 @@ function HouseholdTools({ house, me, store, arr }) {
   return (
     <div className="card" style={{ marginTop: 4 }}>
       <h2>Household tools</h2>
-      <div className="row" style={{ alignItems: 'flex-start' }}>
+      <div className="row" style={{ alignItems: 'flex-start', gap: 36 }}>
         <div style={{ minWidth: 260 }}>
           <label>Calendar feed (iCal)</label>
           <p className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
