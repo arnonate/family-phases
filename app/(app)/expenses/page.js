@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore, sideName, mySide, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
+import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
 import { Banknote, Paperclip } from 'lucide-react';
 
@@ -220,7 +220,7 @@ function AddExpense({ arr, me, store, onClose }) {
     <Modal title="Add expense" onClose={onClose}>
       <div className="row">
         <div className="field"><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
-        <div className="field"><label>Amount ($)</label><input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" /></div>
+        <div className="field"><label>Amount</label><UnitInput unit="USD" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" /></div>
       </div>
       <div className="row">
         <div className="field"><label>Category</label>
@@ -271,7 +271,7 @@ function Settle({ arr, me, bal, store, onClose }) {
       </p>
       <div className="row">
         <div className="field"><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
-        <div className="field"><label>Amount ($)</label><input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} /></div>
+        <div className="field"><label>Amount</label><UnitInput unit="USD" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} /></div>
       </div>
       <div className="field"><label>Direction</label>
         <select value={direction} onChange={e => setDirection(e.target.value)}>

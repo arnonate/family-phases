@@ -57,6 +57,15 @@ export function StructureHelp() {
   );
 }
 
+export function UnitInput({ unit, wrapStyle, ...props }) {
+  return (
+    <span className="unit-wrap" style={wrapStyle}>
+      <input {...props} />
+      <span className="unit">{unit}</span>
+    </span>
+  );
+}
+
 export function KidChecks({ children: kids, value, onChange }) {
   return (
     <div className="check-kids">

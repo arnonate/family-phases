@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { StructureHelp } from '@/components/ui';
+import { StructureHelp, UnitInput } from '@/components/ui';
 
 export default function Setup() {
   const { me, refresh } = useStore();
@@ -67,10 +67,10 @@ export default function Setup() {
               <input value={cpName} onChange={e => setCpName(e.target.value)} placeholder="Their name" /></div>
           </div>
           <div className="row">
-            <div className="field"><label>Your share of shared expenses (%)</label>
-              <input type="number" min="0" max="100" value={split} onChange={e => setSplit(+e.target.value)} /></div>
-            <div className="field"><label>Approval needed above ($)</label>
-              <input type="number" min="0" value={threshold} onChange={e => setThreshold(+e.target.value)} /></div>
+            <div className="field"><label>Your share of shared expenses</label>
+              <UnitInput unit="%" type="number" min="0" max="100" value={split} onChange={e => setSplit(+e.target.value)} /></div>
+            <div className="field"><label>Approval needed above</label>
+              <UnitInput unit="USD" type="number" min="0" value={threshold} onChange={e => setThreshold(+e.target.value)} /></div>
           </div>
           <button className="btn" disabled={busy} style={{ width: '100%' }}>
             {busy ? 'Creating…' : 'Create household'}

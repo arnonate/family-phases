@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore, sideName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { ArrTabs, useArrSelection, StructureHelp } from '@/components/ui';
+import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
 
 const KIDCOLORS = ['#2563eb', '#16a34a', '#9333ea', '#e11d48', '#0891b2', '#ca8a04'];
@@ -64,10 +64,10 @@ function General({ arr, store }) {
           <input value={cLabel} onChange={e => setCLabel(e.target.value)} placeholder="used until they sign up" /></div>
       </div>
       <div className="row">
-        <div className="field"><label>{sideName(arr, 'h')}&apos;s share (%)</label>
-          <input type="number" min="0" max="100" value={split} onChange={e => setSplit(e.target.value)} /></div>
-        <div className="field"><label>Approval needed above ($)</label>
-          <input type="number" min="0" value={threshold} onChange={e => setThreshold(e.target.value)} /></div>
+        <div className="field"><label>{sideName(arr, 'h')}&apos;s share</label>
+          <UnitInput unit="%" type="number" min="0" max="100" value={split} onChange={e => setSplit(e.target.value)} /></div>
+        <div className="field"><label>Approval needed above</label>
+          <UnitInput unit="USD" type="number" min="0" value={threshold} onChange={e => setThreshold(e.target.value)} /></div>
       </div>
       <div className="field"><label>Usual transfer time</label>
         <input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 6:00 PM" /></div>
@@ -310,7 +310,7 @@ function HouseholdTools({ house, me, store, arr }) {
             <>
               <div className="row" style={{ alignItems: 'center' }}>
                 <input placeholder="Arrangement name" value={arrName} onChange={e => setArrName(e.target.value)} />
-                <input type="number" title="household-side share %" style={{ flex: '0 0 80px' }} value={split} onChange={e => setSplit(+e.target.value)} />
+                <UnitInput unit="%" type="number" title="household-side share" wrapStyle={{ flex: '0 0 90px' }} value={split} onChange={e => setSplit(+e.target.value)} />
               </div>
               <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
                 <button className="btn small" onClick={createArrangement}>Create</button>
