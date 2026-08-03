@@ -1,13 +1,20 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Family Phases',
-  description: 'Every family has its phases. Co-parenting schedules, expenses, and reminders in one place.',
+  title: 'Family Phases — every week, in phase',
+  description: 'Co-parenting schedules, expenses, and reminders in one place.',
 };
+
+export const viewport = { themeColor: '#0D1A42' };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+      </head>
       <body>{children}</body>
     </html>
   );

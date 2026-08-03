@@ -20,8 +20,9 @@ export default function Login() {
 
   return (
     <div className="login-box">
-      <h1 style={{ fontSize: 26, marginBottom: 6 }}>Family<span style={{ color: 'var(--me)' }}>Phases</span> 🌗</h1>
-      <p className="muted" style={{ marginBottom: 20 }}>Every family has its phases. Schedules, expenses, and reminders for both households.</p>
+      <img src="/brand/family-phases-lockup-on-light.svg" alt="Family Phases — every week, in phase"
+        style={{ width: '100%', maxWidth: 360, marginBottom: 8, display: 'block' }} />
+      <p className="muted" style={{ marginBottom: 20 }}>Schedules, expenses, and reminders for both households.</p>
       <div className="card">
         {sent ? (
           <p>Check <b>{email}</b> for a sign-in link. You can close this tab.</p>

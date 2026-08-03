@@ -1,20 +1,30 @@
 :root{
-  --me:#2563eb; --me-soft:#dbeafe; --me-softer:#eff6ff;
+  /* Family Phases brand */
+  --navy-deep:#071130; --navy:#0D1A42; --mid-navy:#26386F; --slate-blue:#4A5C93;
+  --periwinkle:#6E84BD; --soft-blue:#8B9ECF; --moonlight:#A9B9DC;
+  --pale-moon:#C6D0E8; --full-moon:#DCE3F0; --paper:#F9F9F1;
+  --me:var(--mid-navy); --me-soft:var(--pale-moon); --me-softer:#EDF1F9;
   --cp:#ea8c1f; --cp-soft:#fef3c7; --cp-softer:#fffbeb;
-  --bg:#f4f6fa; --card:#ffffff; --ink:#1e293b; --muted:#64748b;
-  --line:#e2e8f0; --green:#16a34a; --red:#dc2626; --purple:#7c3aed;
-  --radius:14px; --shadow:0 1px 3px rgba(15,23,42,.08),0 4px 14px rgba(15,23,42,.05);
+  --bg:var(--paper); --card:#ffffff; --ink:var(--navy); --muted:#5A6475;
+  --line:#E3E7F0; --green:#16a34a; --red:#dc2626; --purple:#7c3aed;
+  --radius:14px; --shadow:0 1px 3px rgba(13,26,66,.08),0 4px 14px rgba(13,26,66,.05);
+  --font-body:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-brand:'Plus Jakarta Sans','Inter',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
-a{color:var(--me);text-decoration:none}
-header.top{background:var(--card);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
-header.top h1{font-size:19px;font-weight:700;letter-spacing:-.3px}
-header.top h1 span{color:var(--me)}
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+a{color:var(--slate-blue);text-decoration:none}
+h1,h2,.stat{font-family:var(--font-brand)}
+header.top{background:var(--navy);border-bottom:1px solid var(--navy-deep);padding:10px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+header.top .brand{display:flex;align-items:center;gap:10px}
+header.top .brand img{height:26px;display:block}
+header.top h1{font-size:18px;font-weight:800;letter-spacing:.3px;color:#fff}
 nav.main{display:flex;gap:4px;flex-wrap:wrap;flex:1}
-nav.main a{border:none;background:transparent;padding:8px 14px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted)}
-nav.main a:hover{background:var(--bg)}
-nav.main a.active{background:var(--me-soft);color:var(--me)}
+nav.main a{border:none;background:transparent;padding:8px 14px;border-radius:9px;font-size:14px;font-weight:600;color:var(--moonlight)}
+nav.main a:hover{background:rgba(255,255,255,.08)}
+nav.main a.active{background:var(--mid-navy);color:var(--full-moon)}
+header.top .btn.subtle{background:var(--mid-navy);color:var(--full-moon)}
+header.top .bell{color:var(--full-moon)}
 main.wrap{max-width:1100px;margin:0 auto;padding:22px}
 .grid{display:grid;gap:16px}
 .cols-3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}

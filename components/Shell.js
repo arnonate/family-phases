@@ -41,7 +41,10 @@ export default function Shell({ children }) {
   return (
     <>
       <header className="top">
-        <h1>Family<span>Phases</span> <span style={{ fontSize: 15 }}>🌗</span></h1>
+        <div className="brand">
+          <img src="/brand/family-phases-mark-on-navy.svg" alt="" />
+          <h1>Family Phases</h1>
+        </div>
         {!needsSetup && (
           <nav className="main">
             {NAV.map(([href, label]) => (

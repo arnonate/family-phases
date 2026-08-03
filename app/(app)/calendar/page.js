@@ -139,7 +139,7 @@ export default function CalendarPage() {
           <span><i style={{ background: 'var(--me-soft)' }} />{active ? `With ${sideName(active, 'h')}` : 'All kids home'}</span>
           <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${sideName(active, 'c')}` : 'All kids away'}</span>
           <span>🔁 Transfer day</span>
-          <span><Moon size={13} frac={0.5} /> Lit = share of kids home</span>
+          <span><Moon size={13} frac={0.5} /> Navy fill = share of kids home</span>
         </div>
       </div>
 

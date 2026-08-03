@@ -8,10 +8,10 @@ export default function Moon({ frac = 1, size = 16, title }) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" style={{ verticalAlign: '-2px' }} aria-label={title}>
       {title && <title>{title}</title>}
-      <circle cx="10" cy="10" r="8.5" fill="#334155" opacity="0.25" />
+      <circle cx="10" cy="10" r="8.5" fill="#DCE3F0" />
       <clipPath id={id}><circle cx="10" cy="10" r="8.5" /></clipPath>
-      <circle cx={10 + 17 * (1 - f)} cy="10" r="8.5" fill="#f59e0b" clipPath={`url(#${id})`} />
-      <circle cx="10" cy="10" r="8.5" fill="none" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx={10 + 17 * (1 - f)} cy="10" r="8.5" fill="#0D1A42" clipPath={`url(#${id})`} />
+      <circle cx="10" cy="10" r="8.5" fill="none" stroke="#A9B9DC" strokeWidth="1" />
     </svg>
   );
 }
