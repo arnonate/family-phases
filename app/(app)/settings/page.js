@@ -252,58 +252,6 @@ function HouseholdTools({ house, me, store, arr }) {
     store.refresh();
   }
 
-  async function importV1(ev) {
-    const f = ev.target.files[0]; if (!f) return;
-    ev.target.value = '';
-    try {
-      const data = JSON.parse(await f.text());
-      if (!data.schedule) throw new Error('not a v1 backup');
-      const s = supa();
-      const kidMap = {};
-      for (const k of data.children || []) {
-        const { data: row } = await s.from('children')
-          .insert({ arrangement_id: arr.id, name: k.name, color: k.color }).select().single();
-        if (row) kidMap[k.id] = row.id;
-      }
-      const side = w => (w === 'me' ? 'h' : 'c');
-      await s.from('schedules').upsert({
-        arrangement_id: arr.id, type: data.schedule.type,
-        anchor_date: data.schedule.anchor || null,
-        cycle: (data.schedule.custom || []).map(side),
-      });
-      for (const d of data.deviations || []) {
-        await s.from('deviations').insert({
-          arrangement_id: arr.id, start_date: d.start, end_date: d.end, who: side(d.who),
-          child_ids: (d.childIds || []).map(id => kidMap[id]).filter(Boolean),
-          note: d.note || null, status: 'accepted', proposed_by: me.id,
-        });
-      }
-      for (const e of data.expenses || []) {
-        await s.from('expenses').insert({
-          arrangement_id: arr.id, date: e.date, amount: e.amount, category: e.category,
-          description: e.desc || null, child_ids: (e.childIds || []).map(id => kidMap[id]).filter(Boolean),
-          paid_by: side(e.paidBy), status: 'approved', created_by: me.id,
-        });
-      }
-      for (const p of data.settlements || []) {
-        await s.from('settlements').insert({
-          arrangement_id: arr.id, date: p.date, amount: p.amount,
-          direction: p.direction === 'me2cp' ? 'h2c' : 'c2h', note: p.note || null, created_by: me.id,
-        });
-      }
-      for (const t of data.todos || []) {
-        await s.from('todos').insert({
-          arrangement_id: arr.id, title: t.title, due: t.due || null,
-          child_id: kidMap[t.childId] || null, done: !!t.done, created_by: me.id,
-        });
-      }
-      setMsg('v1 data imported ✓');
-      store.refresh();
-    } catch (e) {
-      setMsg('Import failed: ' + e.message);
-    }
-  }
-
   return (
     <div className="card" style={{ marginTop: 4 }}>
       <h2>Household tools</h2>
@@ -338,13 +286,6 @@ function HouseholdTools({ house, me, store, arr }) {
           ) : (
             <button className="btn small subtle" onClick={() => setShowNewArr(true)}>+ New arrangement</button>
           )}
-        </div>
-        <div style={{ minWidth: 260 }}>
-          <label>Import from FamilySync v1</label>
-          <p className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
-            Load a JSON backup from the single-file prototype into <b>{arr.name}</b>.
-          </p>
-          <input type="file" accept=".json" onChange={importV1} />
         </div>
       </div>
       {msg && <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{msg}</p>}
