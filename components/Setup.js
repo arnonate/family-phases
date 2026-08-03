@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
+import { StructureHelp } from '@/components/ui';
 
 export default function Setup() {
   const { me, refresh } = useStore();
@@ -56,11 +57,11 @@ export default function Setup() {
           <div className="row">
             <div className="field"><label>Your name</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Nate" required /></div>
-            <div className="field"><label>Household name</label>
+            <div className="field"><label>Household name<StructureHelp /></label>
               <input value={houseName} onChange={e => setHouseName(e.target.value)} /></div>
           </div>
           <div className="row">
-            <div className="field"><label>Arrangement name</label>
+            <div className="field"><label>Arrangement name<StructureHelp /></label>
               <input value={arrName} onChange={e => setArrName(e.target.value)} placeholder="My kids" /></div>
             <div className="field"><label>Co-parent&apos;s name</label>
               <input value={cpName} onChange={e => setCpName(e.target.value)} placeholder="Their name" /></div>

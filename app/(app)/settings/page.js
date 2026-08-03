@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore, sideName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { ArrTabs, useArrSelection } from '@/components/ui';
+import { ArrTabs, useArrSelection, StructureHelp } from '@/components/ui';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
 
 const KIDCOLORS = ['#2563eb', '#16a34a', '#9333ea', '#e11d48', '#0891b2', '#ca8a04'];
@@ -56,7 +56,7 @@ function General({ arr, store }) {
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <h2>Arrangement</h2>
-      <div className="field"><label>Name</label><input value={name} onChange={e => setName(e.target.value)} /></div>
+      <div className="field"><label>Name<StructureHelp /></label><input value={name} onChange={e => setName(e.target.value)} /></div>
       <div className="row">
         <div className="field"><label>Household parent label</label>
           <input value={hLabel} onChange={e => setHLabel(e.target.value)} placeholder="used until they sign up" /></div>

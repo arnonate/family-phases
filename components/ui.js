@@ -17,6 +17,46 @@ export function Modal({ title, onClose, children }) {
   );
 }
 
+export function InfoTip({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="info-btn" aria-label={`About ${title}`}
+        onClick={() => setOpen(true)}>i</button>
+      {open && (
+        <Modal title={title} onClose={() => setOpen(false)}>
+          <div style={{ fontSize: 14, lineHeight: 1.55 }}>{children}</div>
+          <div className="actions">
+            <button className="btn" onClick={() => setOpen(false)}>Got it</button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+export function StructureHelp() {
+  return (
+    <InfoTip title="Households & arrangements">
+      <p style={{ marginBottom: 10 }}>
+        <b>Household</b> is your home team — you and your partner. Household members
+        can see everything below. The name is just a label; only you two ever see it.
+      </p>
+      <p style={{ marginBottom: 10 }}>
+        <b>Arrangement</b> is one co-parenting relationship: a set of kids, their two
+        parents, a custody schedule, and an expense split. A household can hold several —
+        for example, your kids with your co-parent, and your partner&apos;s kids with theirs.
+      </p>
+      <p>
+        The <b>arrangement name</b> appears on tabs and cards so everyone can tell them
+        apart — something like &ldquo;Nate&apos;s kids&rdquo; works well. Your co-parent
+        sees it too, so keep it friendly. They only ever see their own arrangement,
+        never the other one.
+      </p>
+    </InfoTip>
+  );
+}
+
 export function KidChecks({ children: kids, value, onChange }) {
   return (
     <div className="check-kids">
