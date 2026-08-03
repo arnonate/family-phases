@@ -45,18 +45,18 @@ main.wrap{max-width:1100px;margin:0 auto;padding:22px}
 .pill.proposed{background:#fef9c3;color:#a16207}
 .pill.accepted{background:#dcfce7;color:var(--green)}
 .pill.declined{background:#fee2e2;color:var(--red)}
-button.btn{border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:600;cursor:pointer;background:var(--me);color:#fff}
+button.btn{border:none;border-radius:9px;padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;background:var(--me);color:#fff;text-transform:uppercase;letter-spacing:.07em}
 button.btn:hover{filter:brightness(1.08)}
 button.btn:disabled{opacity:.5;cursor:default}
 button.btn.ghost{background:transparent;color:var(--me);border:1.5px solid var(--me)}
 button.btn.subtle{background:#f1f5f9;color:var(--ink)}
-button.btn.small{padding:5px 10px;font-size:12.5px}
+button.btn.small{padding:5px 10px;font-size:11px}
 button.btn.green{background:var(--green)}
 button.btn.red{background:var(--red)}
 button.btn.danger{background:transparent;color:var(--red);border:none;padding:4px 6px}
 input,select,textarea{font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);width:100%}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--me)}
-label{font-size:12.5px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em}
 .info-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:5px;border-radius:50%;border:1.5px solid var(--soft-blue);background:transparent;color:var(--slate-blue);font-size:10.5px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:pointer;vertical-align:middle;position:relative;top:-1px;line-height:1;padding:0}
 .info-btn:hover{background:var(--me-softer)}
 .field{margin-bottom:12px}
@@ -96,7 +96,7 @@ tr:last-child td{border-bottom:none}
 .modal h3{font-size:17px;margin-bottom:14px}
 .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .check-kids{display:flex;gap:8px;flex-wrap:wrap}
-.check-kids label{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;margin:0}
+.check-kids label{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;margin:0;text-transform:none;letter-spacing:0}
 .check-kids input{width:auto}
 .check-kids label.on{border-color:var(--me);background:var(--me-softer)}
 .todo{display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
