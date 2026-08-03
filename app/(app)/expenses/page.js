@@ -5,6 +5,7 @@ import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
 import { Banknote, Paperclip } from 'lucide-react';
+import { toast } from '@/components/Toast';
 
 export default function ExpensesPage() {
   const store = useStore();
@@ -26,17 +27,19 @@ export default function ExpensesPage() {
   const pending = arr.expenses.filter(e => e.status === 'pending');
 
   async function decide(e, status) {
-    await supa().from('expenses').update({ status, decided_by: me.id }).eq('id', e.id);
+    const { error } = await supa().from('expenses').update({ status, decided_by: me.id }).eq('id', e.id);
+    if (error) toast.error(`Couldn't update expense: ${error.message}`);
     store.refresh();
   }
   async function remove(e) {
     if (!confirm('Delete this expense?')) return;
-    await supa().from('expenses').delete().eq('id', e.id);
+    const { error } = await supa().from('expenses').delete().eq('id', e.id);
+    if (error) toast.error(`Couldn't delete: ${error.message}`);
     store.refresh();
   }
   async function viewReceipt(e) {
     const { data, error } = await supa().storage.from('receipts').createSignedUrl(e.receipt_path, 300);
-    if (error) alert('Could not open receipt: ' + error.message);
+    if (error) toast.error(`Couldn't open receipt: ${error.message}`);
     else window.open(data.signedUrl, '_blank');
   }
 
@@ -196,22 +199,23 @@ function AddExpense({ arr, me, store, onClose }) {
   const needsApproval = otherPartyJoined && amt > Number(arr.approval_threshold);
 
   async function submit() {
-    if (!date || !(amt > 0)) { alert('Enter a date and a positive amount.'); return; }
+    if (!date || !(amt > 0)) { toast.error('Enter a date and a positive amount.'); return; }
     setBusy(true);
     const s = supa();
     let receipt_path = null;
     if (file) {
       const path = `${arr.id}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, '_')}`;
       const { error } = await s.storage.from('receipts').upload(path, file);
-      if (error) { alert('Receipt upload failed: ' + error.message); setBusy(false); return; }
+      if (error) { toast.error(`Receipt upload failed: ${error.message}`); setBusy(false); return; }
       receipt_path = path;
     }
-    await s.from('expenses').insert({
+    const { error } = await s.from('expenses').insert({
       arrangement_id: arr.id, date, amount: amt, category,
       description: desc.trim() || null, child_ids: kids, paid_by: paidBy,
       receipt_path, status: needsApproval ? 'pending' : 'approved', created_by: me.id,
     });
     setBusy(false);
+    if (error) { toast.error(`Couldn't save expense: ${error.message}`); return; }
     store.refresh();
     onClose();
   }
@@ -255,10 +259,11 @@ function Settle({ arr, me, bal, store, onClose }) {
 
   async function submit() {
     const amt = parseFloat(amount);
-    if (!(amt > 0)) { alert('Enter a positive amount.'); return; }
-    await supa().from('settlements').insert({
+    if (!(amt > 0)) { toast.error('Enter a positive amount.'); return; }
+    const { error } = await supa().from('settlements').insert({
       arrangement_id: arr.id, date, amount: amt, direction, note: note.trim() || null, created_by: me.id,
     });
+    if (error) { toast.error(`Couldn't record payment: ${error.message}`); return; }
     store.refresh();
     onClose();
   }

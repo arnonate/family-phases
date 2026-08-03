@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import Setup from '@/components/Setup';
-import { Bell } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
+import { Toasts } from '@/components/Toast';
 
 const NAV = [
   ['/dashboard', 'Dashboard'],
@@ -59,7 +60,11 @@ export default function Shell({ children }) {
         <button className="btn small subtle" onClick={signOut}>Sign out</button>
       </header>
       {showNotifs && (
-        <div className="notif-pop" onMouseLeave={() => setShowNotifs(false)}>
+        <div className="notif-pop">
+          <div className="notif-head">
+            <b>Notifications</b>
+            <button aria-label="Close" onClick={() => setShowNotifs(false)}><X size={16} strokeWidth={2.5} /></button>
+          </div>
           {store.notifications.length === 0 && <div className="empty">No notifications yet.</div>}
           {store.notifications.map(n => (
             <div key={n.id} className={`notif ${n.read ? '' : 'unread'}`}>
@@ -72,6 +77,7 @@ export default function Shell({ children }) {
       <main className="wrap">
         {needsSetup ? <Setup /> : children}
       </main>
+      <Toasts />
     </>
   );
 }

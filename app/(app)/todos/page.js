@@ -5,6 +5,7 @@ import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
 import { User } from 'lucide-react';
+import { toast } from '@/components/Toast';
 
 export default function TodosPage() {
   const store = useStore();
@@ -73,11 +74,12 @@ function AddTodo({ arrangements, defaultArr, me, store, onClose }) {
   const [assignee, setAssignee] = useState('');
 
   async function submit() {
-    if (!title.trim()) { alert('Give the to-do a name.'); return; }
-    await supa().from('todos').insert({
+    if (!title.trim()) { toast.error('Give the to-do a name.'); return; }
+    const { error } = await supa().from('todos').insert({
       arrangement_id: arr.id, title: title.trim(), due: due || null,
       child_id: childId || null, assigned_to: assignee || null, created_by: me.id,
     });
+    if (error) { toast.error(`Couldn't save to-do: ${error.message}`); return; }
     store.refresh();
     onClose();
   }

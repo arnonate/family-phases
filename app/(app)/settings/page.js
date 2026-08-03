@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useStore, sideName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
+import { toast } from '@/components/Toast';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
 
 const KIDCOLORS = ['#2563eb', '#16a34a', '#9333ea', '#e11d48', '#0891b2', '#ca8a04'];
@@ -51,12 +52,13 @@ function General({ arr, store }) {
 
   async function save() {
     setBusy(true);
-    await supa().from('arrangements').update({
+    const { error } = await supa().from('arrangements').update({
       name, h_label: hLabel || null, c_label: cLabel || null,
       split_pct: Math.min(100, Math.max(0, +split || 0)),
       approval_threshold: Math.max(0, +threshold || 0),
       transfer_time: time || null,
     }).eq('id', arr.id);
+    if (error) toast.error(`Couldn't save: ${error.message}`);
     await store.refresh();
     setBusy(false);
   }
@@ -142,10 +144,11 @@ function Schedule({ arr, store }) {
 
   async function save() {
     setBusy(true);
-    await supa().from('schedules').upsert({
+    const { error } = await supa().from('schedules').upsert({
       arrangement_id: arr.id, type, anchor_date: anchor || null,
       cycle: type === 'custom' ? cycle : [],
     });
+    if (error) toast.error(`Couldn't save schedule: ${error.message}`);
     await store.refresh();
     setBusy(false);
   }
@@ -195,7 +198,7 @@ function People({ arr, house, me, store }) {
       ? { email: email.trim(), arrangement_id: arr.id, role: 'coparent', invited_by: me.id }
       : { email: email.trim(), household_id: house.id, role: 'household', invited_by: me.id };
     const { error } = await supa().from('invites').insert(row);
-    if (error) { setMsg(error.message); return; }
+    if (error) { toast.error(`Invite failed: ${error.message}`); return; }
     setMsg(`Invite saved for ${email.trim()} — when they sign in with that email, they're connected automatically. Send them the app link!`);
     setCpEmail(''); setPartnerEmail('');
     store.refresh();
@@ -235,19 +238,24 @@ function HouseholdTools({ house, me, store, arr }) {
   const [showNewArr, setShowNewArr] = useState(false);
   const [arrName, setArrName] = useState('');
   const [split, setSplit] = useState(50);
-  const [msg, setMsg] = useState('');
   const icalUrl = typeof window !== 'undefined' && store.me
     ? `${window.location.origin}/api/ical/${store.me.ical_token}` : '';
 
   async function createArrangement() {
     if (!arrName.trim()) return;
     const s = supa();
-    const { data: a, error } = await s.from('arrangements').insert({
-      household_id: house.id, name: arrName.trim(), split_pct: split, approval_threshold: 500,
-    }).select().single();
-    if (error) { setMsg(error.message); return; }
-    await s.from('arrangement_members').insert({ arrangement_id: a.id, user_id: me.id, role: 'household' });
-    await s.from('schedules').insert({ arrangement_id: a.id, type: 'weeks' });
+    // Client-generated id: asking for the row back (RETURNING) trips the read
+    // policy, which can't see a row mid-insert. Same pattern as initial setup.
+    const arrId = crypto.randomUUID();
+    const { error } = await s.from('arrangements').insert({
+      id: arrId, household_id: house.id, name: arrName.trim(), split_pct: split, approval_threshold: 500,
+    });
+    if (error) { toast.error(`Couldn't create arrangement: ${error.message}`); return; }
+    const { error: e2 } = await s.from('arrangement_members')
+      .insert({ arrangement_id: arrId, user_id: me.id, role: 'household' });
+    if (e2) { toast.error(e2.message); return; }
+    await s.from('schedules').insert({ arrangement_id: arrId, type: 'weeks' });
+    toast.success(`Arrangement "${arrName.trim()}" created`);
     setShowNewArr(false); setArrName('');
     store.refresh();
   }
@@ -264,7 +272,7 @@ function HouseholdTools({ house, me, store, arr }) {
           <div className="row" style={{ alignItems: 'center' }}>
             <input readOnly value={icalUrl} onFocus={e => e.target.select()} />
             <button className="btn small subtle" style={{ flex: 0 }}
-              onClick={() => { navigator.clipboard.writeText(icalUrl); setMsg('Link copied ✓'); }}>Copy</button>
+              onClick={() => { navigator.clipboard.writeText(icalUrl); toast.success('Calendar link copied'); }}>Copy</button>
           </div>
         </div>
         <div style={{ minWidth: 260 }}>
@@ -288,7 +296,6 @@ function HouseholdTools({ house, me, store, arr }) {
           )}
         </div>
       </div>
-      {msg && <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{msg}</p>}
     </div>
   );
 }

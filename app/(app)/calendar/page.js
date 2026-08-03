@@ -5,6 +5,7 @@ import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon from '@/components/Moon';
 import { ArrowLeftRight, CalendarDays } from 'lucide-react';
+import { toast } from '@/components/Toast';
 import {
   ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer,
 } from '@/lib/custody';
@@ -57,11 +58,13 @@ export default function CalendarPage() {
     a.deviations.filter(d => d.status !== 'proposed').map(d => ({ ...d, arr: a })));
 
   async function decide(dev, status) {
-    await supa().from('deviations').update({ status, decided_by: me.id }).eq('id', dev.id);
+    const { error } = await supa().from('deviations').update({ status, decided_by: me.id }).eq('id', dev.id);
+    if (error) toast.error(`Couldn't update proposal: ${error.message}`);
     store.refresh();
   }
   async function removeDev(dev) {
-    await supa().from('deviations').delete().eq('id', dev.id);
+    const { error } = await supa().from('deviations').delete().eq('id', dev.id);
+    if (error) toast.error(`Couldn't withdraw: ${error.message}`);
     store.refresh();
   }
 
@@ -214,15 +217,17 @@ function DeviationModal({ init, arrangements, defaultArr, me, store, onClose }) 
   const otherPartyJoined = (arr.arrangement_members || []).length > 1;
 
   async function submit() {
-    if (!start || !end || end < start) { alert('Check the dates.'); return; }
+    if (!start || !end || end < start) { toast.error('Check the dates — the end can’t be before the start.'); return; }
     setBusy(true);
-    await supa().from('deviations').insert({
+    const { error } = await supa().from('deviations').insert({
       arrangement_id: arr.id, start_date: start, end_date: end, who,
       child_ids: kids, note: note.trim() || null,
       status: otherPartyJoined ? 'proposed' : 'accepted',
       proposed_by: me.id,
     });
     setBusy(false);
+    if (error) { toast.error(`Couldn't save: ${error.message}`); return; }
+    if (otherPartyJoined) toast.success('Proposal sent for approval');
     store.refresh();
     onClose();
   }
