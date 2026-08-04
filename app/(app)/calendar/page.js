@@ -3,7 +3,7 @@ import { useState, Fragment } from 'react';
 import { useStore, sideName, mySide, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
-import Moon from '@/components/Moon';
+import Moon, { phaseLabel } from '@/components/Moon';
 import { ArrowLeftRight, CalendarDays, MessageCircle } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
@@ -59,7 +59,8 @@ export default function CalendarPage() {
   const pendingDevs = shown.flatMap(a =>
     a.deviations.filter(d => d.status === 'proposed').map(d => ({ ...d, arr: a })));
   const decidedDevs = shown.flatMap(a =>
-    a.deviations.filter(d => d.status !== 'proposed').map(d => ({ ...d, arr: a })));
+    a.deviations.filter(d => d.status !== 'proposed').map(d => ({ ...d, arr: a })))
+    .sort((x, y) => (x.start_date < y.start_date ? 1 : -1));
 
   async function decide(dev, status) {
     const { error } = await supa().from('deviations').update({ status, decided_by: me.id }).eq('id', dev.id);
@@ -119,13 +120,7 @@ export default function CalendarPage() {
                 className={`cal-cell ${c.other ? 'other' : ''} ${info.who ? 'who-' + info.who : ''} ${c.date === tod ? 'today' : ''}`}
                 onClick={() => setDayModal(c.date)}>
                 <span className="dnum">{c.num}</span>
-                {info.who && info.totalKids > 0 && (
-                  <span style={{ float: 'right', marginTop: 1 }}>
-                    <Moon size={13} frac={info.kidsHome.length / info.totalKids}
-                      title={`${info.kidsHome.length} of ${info.totalKids} kids home`} />
-                  </span>
-                )}
-                {info.transfer && <span className="transfer-flag" style={{ top: 22 }} title="Transfer day"><ArrowLeftRight size={10} strokeWidth={2.5} /></span>}
+                {info.transfer && <span className="transfer-flag" title="Transfer day"><ArrowLeftRight size={12} strokeWidth={2.5} /></span>}
                 {info.who && info.who !== 'mix' && (
                   <div className={`who-tag ${info.who}`}>
                     {info.who === 'h' ? (active ? sideName(active, 'h') : 'Home') : (active ? sideName(active, 'c') : 'Away')}
@@ -141,10 +136,9 @@ export default function CalendarPage() {
                 )}
                 {info.commentCount > 0 && (
                   <span className="cmt-flag" title={`${info.commentCount} comment${info.commentCount === 1 ? '' : 's'}`}>
-                    <MessageCircle size={9} strokeWidth={2.5} />{info.commentCount}
+                    <MessageCircle size={12} strokeWidth={2.5} />{info.commentCount}
                   </span>
                 )}
-                {info.dev && <span className="dev-flag" title="Deviation from normal schedule" />}
               </div>
             );
           })}
@@ -153,7 +147,7 @@ export default function CalendarPage() {
           <span><i style={{ background: 'var(--me-soft)' }} />{active ? `With ${sideName(active, 'h')}` : 'All kids home'}</span>
           <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${sideName(active, 'c')}` : 'All kids away'}</span>
           <span><ArrowLeftRight size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Transfer day</span>
-          <span><Moon size={13} frac={0.5} /> Navy fill = share of kids home</span>
+          <span><MessageCircle size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Comments</span>
         </div>
       </div>
 
@@ -194,8 +188,23 @@ function DayModal({ date, shown, me, store, onClose, onPropose }) {
       .map(c => ({ ...c, tag: shown.length > 1 ? a.name : null })))
     .sort((x, y) => (x.created_at < y.created_at ? -1 : 1));
 
+  const allKids = shown.flatMap(a => a.children);
+  const homeKids = shown.flatMap(a =>
+    a.children.filter(k => custodyFor(a.schedule, a.deviations, date, k.id) === 'h'));
+
   return (
     <Modal title={fmt(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} onClose={onClose}>
+      {allKids.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <Moon size={42} frac={homeKids.length / allKids.length} title="Phase for this day" />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>{phaseLabel(homeKids.length, allKids.length)}</div>
+            <div className="muted" style={{ fontSize: 12.5 }}>
+              {homeKids.length ? `Home: ${homeKids.map(k => k.name).join(', ')}` : 'All kids at their other homes.'}
+            </div>
+          </div>
+        </div>
+      )}
       <div className={`day-kids-wrap ${shown.length > 1 ? '' : 'single'}`}>
         {shown.map(a => {
           const groups = { h: [], c: [] };
