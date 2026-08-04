@@ -15,7 +15,7 @@ export default function Login() {
     setErr('');
     setBusy(true);
     const { error } = await supa().auth.signInWithOtp({
-      email,
+      email: email.trim().toLowerCase(),
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setBusy(false);
@@ -28,7 +28,11 @@ export default function Login() {
     if (busy || !code.trim()) return;
     setErr('');
     setBusy(true);
-    const { error } = await supa().auth.verifyOtp({ email, token: code.trim(), type: 'email' });
+    const { error } = await supa().auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code.replace(/\D/g, ''),
+      type: 'email',
+    });
     setBusy(false);
     if (error) setErr(error.message);
     else window.location.href = '/dashboard';
