@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useStore, sideName, mySide, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
@@ -194,27 +194,31 @@ function DayModal({ date, shown, me, store, onClose, onPropose }) {
 
   return (
     <Modal title={fmt(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} onClose={onClose}>
-      {shown.map(a => {
-        const groups = { h: [], c: [] };
-        a.children.forEach(k => {
-          const w = custodyFor(a.schedule, a.deviations, date, k.id);
-          if (w) groups[w].push(k);
-        });
-        return (
-          <div key={a.id} className="day-kids">
-            {shown.length > 1 && <b>{a.name}</b>}
-            {['h', 'c'].map(s => groups[s].length > 0 && (
-              <span key={s} className="side-group">
-                <span className={`pill ${s}`}>{sideName(a, s)}</span>
-                {groups[s].map(k => (
-                  <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>
+      <div className={`day-kids-wrap ${shown.length > 1 ? '' : 'single'}`}>
+        {shown.map(a => {
+          const groups = { h: [], c: [] };
+          a.children.forEach(k => {
+            const w = custodyFor(a.schedule, a.deviations, date, k.id);
+            if (w) groups[w].push(k);
+          });
+          return (
+            <Fragment key={a.id}>
+              {shown.length > 1 && <b>{a.name}</b>}
+              <div className="dk-groups">
+                {['h', 'c'].map(s => groups[s].length > 0 && (
+                  <span key={s} className="side-group">
+                    <span className={`pill ${s}`}>{sideName(a, s)}</span>
+                    {groups[s].map(k => (
+                      <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>
+                    ))}
+                  </span>
                 ))}
-              </span>
-            ))}
-            {!a.children.length && <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>}
-          </div>
-        );
-      })}
+                {!a.children.length && <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>}
+              </div>
+            </Fragment>
+          );
+        })}
+      </div>
       <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 6px' }}>Conversation</div>
       <CommentThread
         comments={comments}

@@ -137,9 +137,14 @@ tr:last-child td{border-bottom:none}
 .toast.error{border-color:#fecaca;background:#fef2f2;color:#991b1b}
 .toast.success{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
 .toast button{background:none;border:none;cursor:pointer;color:inherit;padding:2px;display:flex;flex:none}
-.day-kids{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:5px 0;font-size:13px;border-bottom:1px solid var(--line)}
-.day-kids b{font-size:12px;flex:none}
+.day-kids-wrap{display:grid;grid-template-columns:max-content 1fr;column-gap:14px;align-items:center}
+.day-kids-wrap.single{grid-template-columns:1fr}
+.day-kids-wrap>*{padding:7px 0;border-bottom:1px solid var(--line)}
+.day-kids-wrap>*:nth-last-child(-n+2){border-bottom:none}
+.day-kids-wrap b{font-size:12px}
+.dk-groups{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px}
 .side-group{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.modal .thread{background:transparent;border:none;padding:0;margin:0}
 .dk-kid{display:inline-flex;align-items:center;white-space:nowrap}
 .cmt-flag{position:absolute;bottom:4px;left:6px;display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:var(--slate-blue)}
 /* to-do comment threads */
