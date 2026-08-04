@@ -50,7 +50,8 @@ export default function TodosPage() {
           return (
             <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
               <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setOpenThread(t.id)}
+                title="Open conversation">
                 <div className="t-title">{t.title}</div>
                 <div className="t-meta">
                   {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
