@@ -241,7 +241,7 @@ function DayModal({ date, shown, me, store, onClose, onPropose }) {
         emptyText="No comments for this day yet."
         controls={shown.length > 1 && (
           <select value={arrId} onChange={e => setArrId(e.target.value)}
-            style={{ width: 'auto', flex: 'none', fontSize: 13, padding: '7px 30px 7px 8px' }}>
+            style={{ width: 'auto', flex: 'none', padding: '7px 30px 7px 8px' }}>
             {shown.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         )}
