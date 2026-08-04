@@ -136,7 +136,7 @@ export default function Dashboard() {
                 <div className="t-title">{t.title}</div>
                 <div className="t-meta">
                   {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
-                  {arrangements.length > 1 && <> · {t.arr.name}</>}
+                  {arrangements.length > 1 && <>{t.due ? ' · ' : ''}{t.arr.name}</>}
                 </div>
               </div>
             </div>

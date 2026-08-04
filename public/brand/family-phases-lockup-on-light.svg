@@ -1,14 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 120" width="560" height="120">
-  <defs>
-    <mask id="l">
-      <rect x="0" y="0" width="200" height="120" fill="#fff"></rect>
-      <circle cx="63" cy="60" r="35.7" fill="#000"></circle>
-    </mask>
-  </defs>
-  <g>
-    <circle cx="35.7" cy="60" r="35.7" fill="#171A23"></circle>
-    <circle cx="84" cy="60" r="35.7" fill="#4A5C93" mask="url(#l)"></circle>
-  </g>
+  <circle cx="35.7" cy="60" r="35.7" fill="#171A23"></circle>
+  <path d="M73.5 25.9A35.7 35.7 0 1 1 73.5 94.1A35.7 35.7 0 0 0 73.5 25.9Z" fill="#4A5C93"></path>
   <text x="140" y="58" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="800" font-size="40" letter-spacing="0.32" fill="#171A23">Family Phases</text>
   <text x="140" y="86" font-family="Inter, sans-serif" font-weight="700" font-size="12" letter-spacing="4.8" fill="#5A6475">EVERY WEEK, IN PHASE</text>
 </svg>

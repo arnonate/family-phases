@@ -47,18 +47,24 @@ export default function TodosPage() {
           const overdue = !t.done && t.due && t.due < tod;
           const assignee = assigneeName(t);
           const n = t.comments?.length || 0;
+          const meta = [];
+          if (t.due) meta.push(
+            <span key="due" className={overdue ? 'overdue' : ''}>
+              {overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}
+            </span>
+          );
+          if (t.child_id) meta.push(<span key="kid">{kidName(t.arr, t.child_id)}</span>);
+          if (assignee) meta.push(
+            <span key="who"><User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</span>
+          );
+          if (arrangements.length > 1) meta.push(<span key="arr">{t.arr.name}</span>);
           return (
             <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
               <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
               <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setOpenThread(t.id)}
                 title="Open conversation">
                 <div className="t-title">{t.title}</div>
-                <div className="t-meta">
-                  {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
-                  {t.child_id && <> · {kidName(t.arr, t.child_id)}</>}
-                  {assignee && <> · <User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</>}
-                  {arrangements.length > 1 && <> · {t.arr.name}</>}
-                </div>
+                <div className="t-meta">{meta.flatMap((m, i) => (i ? [' · ', m] : [m]))}</div>
               </div>
               <button className={`thread-btn ${n ? 'has' : ''}`} title="Comments"
                 onClick={() => setOpenThread(t.id)}>

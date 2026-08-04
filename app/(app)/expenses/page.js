@@ -157,7 +157,7 @@ export default function ExpensesPage() {
                   <td><span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span></td>
                   <td className="right">{money(Number(e.amount) * arr.split_pct / 100)}</td>
                   <td><span className={`pill ${e.status}`}>{e.status}</span></td>
-                  <td className="right">{e.created_by === me.id &&
+                  <td className="right">{e.created_by === me.id && e.status !== 'pending' &&
                     <button className="btn danger small" onClick={() => remove(e)}>✕</button>}</td>
                 </tr>
               ))}
