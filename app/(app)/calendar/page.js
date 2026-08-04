@@ -129,7 +129,7 @@ export default function CalendarPage() {
                 {info.who === 'mix' && (
                   <div className="who-tag" style={{ color: 'var(--purple)' }}>Split</div>
                 )}
-                {info.who && info.totalKids > 0 && (
+                {!active && info.who && info.totalKids > 0 && (
                   <span className="moon-flag">
                     <Moon size={14} frac={info.kidsHome.length / info.totalKids}
                       title={`${info.kidsHome.length} of ${info.totalKids} kids home`} />
@@ -149,7 +149,7 @@ export default function CalendarPage() {
           <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${sideName(active, 'c')}` : 'All kids away'}</span>
           <span><ArrowLeftRight size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Transfer day</span>
           <span><MessageCircle size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Comments</span>
-          <span><Moon size={13} frac={0.5} /> Fill = share of kids home</span>
+          {!active && <span><Moon size={13} frac={0.5} /> Fill = share of kids home</span>}
         </div>
       </div>
 
