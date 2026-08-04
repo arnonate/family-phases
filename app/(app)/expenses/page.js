@@ -6,6 +6,7 @@ import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/compone
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
 import { Banknote, Paperclip } from 'lucide-react';
 import { toast } from '@/components/Toast';
+import { confirmDelete } from '@/components/Confirm';
 
 export default function ExpensesPage() {
   const store = useStore();
@@ -32,7 +33,7 @@ export default function ExpensesPage() {
     store.refresh();
   }
   async function remove(e) {
-    if (!confirm('Delete this expense?')) return;
+    if (!(await confirmDelete(`Delete this ${money(Number(e.amount))} expense? This can’t be undone.`))) return;
     const { error } = await supa().from('expenses').delete().eq('id', e.id);
     if (error) toast.error(`Couldn't delete: ${error.message}`);
     store.refresh();

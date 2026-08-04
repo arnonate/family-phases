@@ -4,6 +4,7 @@ import { useStore, sideName, mySide } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
 import { toast } from '@/components/Toast';
+import { confirmDelete } from '@/components/Confirm';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
 
 const KIDCOLORS = ['#2563eb', '#16a34a', '#9333ea', '#e11d48', '#0891b2', '#ca8a04'];
@@ -105,8 +106,9 @@ function Children({ arr, store }) {
     store.refresh();
   }
   async function remove(k) {
-    if (!confirm(`Remove ${k.name}? Their expense/schedule history stays but loses the name link.`)) return;
-    await supa().from('children').delete().eq('id', k.id);
+    if (!(await confirmDelete(`Remove ${k.name}? Their expense and schedule history stays but loses the name link.`))) return;
+    const { error } = await supa().from('children').delete().eq('id', k.id);
+    if (error) toast.error(`Couldn't remove: ${error.message}`);
     store.refresh();
   }
 
@@ -114,11 +116,11 @@ function Children({ arr, store }) {
     <div className="card" style={{ marginBottom: 16 }}>
       <h2>Children</h2>
       {arr.children.map(k => (
-        <div key={k.id} className="row" style={{ marginBottom: 8, alignItems: 'center' }}>
-          <input style={{ flex: 3 }} defaultValue={k.name} onBlur={e => e.target.value !== k.name && update(k, { name: e.target.value })} />
-          <input type="color" style={{ flex: '0 0 46px', padding: 3, height: 38 }} defaultValue={k.color}
+        <div key={k.id} className="row" style={{ marginBottom: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+          <input style={{ flex: 3, minWidth: 0 }} defaultValue={k.name} onBlur={e => e.target.value !== k.name && update(k, { name: e.target.value })} />
+          <input type="color" style={{ flex: '0 0 34px', minWidth: 0, padding: 2, height: 34 }} defaultValue={k.color}
             onBlur={e => e.target.value !== k.color && update(k, { color: e.target.value })} />
-          <button className="btn danger small" style={{ flex: 0 }} onClick={() => remove(k)}>✕</button>
+          <button className="btn danger small" style={{ flex: 'none', minWidth: 0 }} onClick={() => remove(k)}>✕</button>
         </div>
       ))}
       <div className="row" style={{ alignItems: 'center' }}>

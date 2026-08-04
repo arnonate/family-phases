@@ -7,6 +7,7 @@ import { todayStr, fmt } from '@/lib/custody';
 import { User, MessageCircle } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
+import { confirmDelete } from '@/components/Confirm';
 
 export default function TodosPage() {
   const store = useStore();
@@ -26,7 +27,9 @@ export default function TodosPage() {
     store.refresh();
   }
   async function remove(t) {
-    await supa().from('todos').delete().eq('id', t.id);
+    if (!(await confirmDelete(`Delete "${t.title}"${t.comments?.length ? ' and its comments' : ''}? This can’t be undone.`))) return;
+    const { error } = await supa().from('todos').delete().eq('id', t.id);
+    if (error) toast.error(`Couldn't delete: ${error.message}`);
     store.refresh();
   }
   function assigneeName(t) {
@@ -44,31 +47,39 @@ export default function TodosPage() {
           const overdue = !t.done && t.due && t.due < tod;
           const assignee = assigneeName(t);
           const n = t.comments?.length || 0;
-          const open = openThread === t.id;
           return (
-            <div key={t.id}>
-              <div className={`todo ${t.done ? 'done' : ''}`}>
-                <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
-                <div style={{ flex: 1 }}>
-                  <div className="t-title">{t.title}</div>
-                  <div className="t-meta">
-                    {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
-                    {t.child_id && <> · {kidName(t.arr, t.child_id)}</>}
-                    {assignee && <> · <User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</>}
-                    {arrangements.length > 1 && <> · {t.arr.name}</>}
-                  </div>
+            <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
+              <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
+              <div style={{ flex: 1 }}>
+                <div className="t-title">{t.title}</div>
+                <div className="t-meta">
+                  {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
+                  {t.child_id && <> · {kidName(t.arr, t.child_id)}</>}
+                  {assignee && <> · <User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</>}
+                  {arrangements.length > 1 && <> · {t.arr.name}</>}
                 </div>
-                <button className={`thread-btn ${open || n ? 'has' : ''}`} title="Comments"
-                  onClick={() => setOpenThread(open ? null : t.id)}>
-                  <MessageCircle size={14} />{n > 0 && <span>{n}</span>}
-                </button>
-                <button className="btn danger small" onClick={() => remove(t)}>✕</button>
               </div>
-              {open && <Thread todo={t} me={me} store={store} />}
+              <button className={`thread-btn ${n ? 'has' : ''}`} title="Comments"
+                onClick={() => setOpenThread(t.id)}>
+                <MessageCircle size={19} />{n > 0 && <span>{n}</span>}
+              </button>
+              <button className="btn danger small" onClick={() => remove(t)}>✕</button>
             </div>
           );
         })}
       </div>
+      {openThread && (() => {
+        const t = todos.find(x => x.id === openThread);
+        if (!t) return null;
+        return (
+          <Modal title={t.title} onClose={() => setOpenThread(null)}>
+            <Thread todo={t} me={me} store={store} />
+            <div className="actions">
+              <button className="btn subtle" onClick={() => setOpenThread(null)}>Close</button>
+            </div>
+          </Modal>
+        );
+      })()}
       {showAdd && <AddTodo arrangements={arrangements}
         defaultArr={sel === 'all' ? arrangements[0] : arrangements.find(a => a.id === sel)}
         me={me} store={store} onClose={() => setShowAdd(false)} />}

@@ -7,6 +7,7 @@ import Moon from '@/components/Moon';
 import { ArrowLeftRight, CalendarDays, MessageCircle } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
+import { confirmDelete } from '@/components/Confirm';
 import {
   ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer,
 } from '@/lib/custody';
@@ -66,6 +67,7 @@ export default function CalendarPage() {
     store.refresh();
   }
   async function removeDev(dev) {
+    if (!(await confirmDelete('Withdraw this schedule-change proposal?'))) return;
     const { error } = await supa().from('deviations').delete().eq('id', dev.id);
     if (error) toast.error(`Couldn't withdraw: ${error.message}`);
     store.refresh();

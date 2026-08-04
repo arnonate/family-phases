@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { X, SendHorizontal } from 'lucide-react';
 import { toast } from '@/components/Toast';
+import { confirmDelete } from '@/components/Confirm';
 
 // Shared flat comment thread. `onPost(body)` / `onDelete(comment)` return a
 // Supabase error or null; `refresh` reloads the store afterwards.
@@ -23,6 +24,7 @@ export default function CommentThread({
     refresh();
   }
   async function del(c) {
+    if (!(await confirmDelete('Delete this comment? This can’t be undone.'))) return;
     const error = await onDelete(c);
     if (error) { toast.error(`Couldn't delete comment: ${error.message}`); return; }
     refresh();

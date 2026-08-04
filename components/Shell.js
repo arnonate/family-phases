@@ -7,6 +7,7 @@ import { supa } from '@/lib/supabase/client';
 import Setup from '@/components/Setup';
 import { Bell, X } from 'lucide-react';
 import { Toasts } from '@/components/Toast';
+import { ConfirmHost } from '@/components/Confirm';
 
 const NAV = [
   ['/dashboard', 'Dashboard'],
@@ -78,6 +79,7 @@ export default function Shell({ children }) {
         {needsSetup ? <Setup /> : children}
       </main>
       <Toasts />
+      <ConfirmHost />
     </>
   );
 }
