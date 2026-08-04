@@ -38,6 +38,12 @@ export default function ExpensesPage() {
     if (error) toast.error(`Couldn't delete: ${error.message}`);
     store.refresh();
   }
+  async function removeSettle(p) {
+    if (!(await confirmDelete(`Delete this ${money(Number(p.amount))} payment? The balance will change accordingly.`))) return;
+    const { error } = await supa().from('settlements').delete().eq('id', p.id);
+    if (error) toast.error(`Couldn't delete: ${error.message}`);
+    store.refresh();
+  }
   async function viewReceipt(e) {
     const { data, error } = await supa().storage.from('receipts').createSignedUrl(e.receipt_path, 300);
     if (error) toast.error(`Couldn't open receipt: ${error.message}`);
@@ -151,7 +157,7 @@ export default function ExpensesPage() {
                   <td><span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span></td>
                   <td className="right">{money(Number(e.amount) * arr.split_pct / 100)}</td>
                   <td><span className={`pill ${e.status}`}>{e.status}</span></td>
-                  <td className="right">{(e.created_by === me.id && e.status !== 'approved') &&
+                  <td className="right">{e.created_by === me.id &&
                     <button className="btn danger small" onClick={() => remove(e)}>✕</button>}</td>
                 </tr>
               ))}
@@ -164,7 +170,7 @@ export default function ExpensesPage() {
         <h2>Payments / settlements</h2>
         {arr.settlements.length === 0 ? <div className="empty">No payments recorded yet.</div> : (
           <table><tbody>
-            <tr><th>Date</th><th>Payment</th><th className="right">Amount</th><th>Note</th></tr>
+            <tr><th>Date</th><th>Payment</th><th className="right">Amount</th><th>Note</th><th></th></tr>
             {arr.settlements.map(p => (
               <tr key={p.id}>
                 <td>{fmt(p.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
@@ -173,6 +179,8 @@ export default function ExpensesPage() {
                   : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</td>
                 <td className="right">{money(Number(p.amount))}</td>
                 <td className="muted">{p.note}</td>
+                <td className="right">{p.created_by === me.id &&
+                  <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}</td>
               </tr>
             ))}
           </tbody></table>

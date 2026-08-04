@@ -314,8 +314,8 @@ create policy "expenses insert" on expenses for insert
   with check (public.can_access_arrangement(arrangement_id) and created_by = auth.uid());
 create policy "expenses decide" on expenses for update
   using (public.is_arrangement_member(arrangement_id) and created_by <> auth.uid());
-create policy "expenses delete own pending" on expenses for delete
-  using (created_by = auth.uid() and status <> 'approved');
+create policy "expenses delete own" on expenses for delete
+  using (created_by = auth.uid());
 
 create policy "own notifications" on notifications for select using (user_id = auth.uid());
 create policy "mark notifications read" on notifications for update using (user_id = auth.uid());
