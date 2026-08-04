@@ -127,12 +127,13 @@ export default function CalendarPage() {
                   </div>
                 )}
                 {info.who === 'mix' && (
-                  <>
-                    <div className="who-tag" style={{ color: 'var(--purple)' }}>Split</div>
-                    <div className="badge-row">
-                      {info.kidsHome.map(k => <span key={k.id} className="kid-dot" title={`${k.name} home`} style={{ background: k.color }} />)}
-                    </div>
-                  </>
+                  <div className="who-tag" style={{ color: 'var(--purple)' }}>Split</div>
+                )}
+                {info.who && info.totalKids > 0 && (
+                  <span className="moon-flag">
+                    <Moon size={14} frac={info.kidsHome.length / info.totalKids}
+                      title={`${info.kidsHome.length} of ${info.totalKids} kids home`} />
+                  </span>
                 )}
                 {info.commentCount > 0 && (
                   <span className="cmt-flag" title={`${info.commentCount} comment${info.commentCount === 1 ? '' : 's'}`}>
@@ -148,6 +149,7 @@ export default function CalendarPage() {
           <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${sideName(active, 'c')}` : 'All kids away'}</span>
           <span><ArrowLeftRight size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Transfer day</span>
           <span><MessageCircle size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Comments</span>
+          <span><Moon size={13} frac={0.5} /> Fill = share of kids home</span>
         </div>
       </div>
 

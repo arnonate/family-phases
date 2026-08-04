@@ -148,6 +148,7 @@ tr:last-child td{border-bottom:none}
 .side-group{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
 .dk-kid{display:inline-flex;align-items:center;white-space:nowrap}
 .cmt-flag{position:absolute;bottom:5px;right:5px;display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:7px;background:#fff;border:1px solid var(--line);font-size:11px;font-weight:700;color:var(--slate-blue)}
+.moon-flag{position:absolute;bottom:5px;left:6px;line-height:0}
 /* to-do comment threads */
 .thread-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--muted);padding:8px 6px;font-size:13px;font-weight:700}
 .thread-btn.has{color:var(--slate-blue)}
@@ -188,8 +189,6 @@ tr:last-child td{border-bottom:none}
   .c-form input,.c-form select{font-size:16px}
   /* date pickers must be allowed to shrink inside modal rows */
   .modal .row>*{min-width:0}
-  /* split-day kid dots are decorative noise at phone sizes */
-  .cal-cell .badge-row{display:none}
   /* week strip */
   .week-strip{gap:3px}
   .ws-day{padding:5px 2px;font-size:10px}
