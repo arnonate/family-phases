@@ -27,7 +27,11 @@ export async function GET(request, { params }) {
       .in('household_id', hm.map(x => x.household_id));
     viaHouse = (data || []).map(x => x.id);
   }
-  const ids = [...new Set([...direct, ...viaHouse])];
+  let ids = [...new Set([...direct, ...viaHouse])];
+  // Optional ?arrangement=<id> narrows the feed. Access is still enforced:
+  // the filter can only select from arrangements this token already reaches.
+  const wanted = new URL(request.url).searchParams.get('arrangement');
+  if (wanted) ids = ids.filter(i => i === wanted);
   if (!ids.length) return icsResponse([]);
 
   const { data: arrs } = await admin.from('arrangements')
@@ -60,14 +64,15 @@ export async function GET(request, { params }) {
       if (!cur && w && w !== '__end__') cur = { who: w, from: d };
     }
   }
-  return icsResponse(events);
+  const calName = arrs?.length === 1 ? `Family Phases — ${arrs[0].name}` : 'Family Phases custody';
+  return icsResponse(events, calName);
 }
 
-function icsResponse(events) {
+function icsResponse(events, calName = 'Family Phases custody') {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
   const lines = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Family Phases//EN',
-    'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Family Phases custody',
+    'CALSCALE:GREGORIAN', `X-WR-CALNAME:${calName}`,
     ...events.flatMap((e, i) => [
       'BEGIN:VEVENT',
       `UID:family-phases-${e.start}-${i}@familyphases`,

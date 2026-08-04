@@ -240,8 +240,20 @@ function HouseholdTools({ house, me, store, arr }) {
   const [showNewArr, setShowNewArr] = useState(false);
   const [arrName, setArrName] = useState('');
   const [split, setSplit] = useState(50);
-  const icalUrl = typeof window !== 'undefined' && store.me
+  const icalBase = typeof window !== 'undefined' && store.me
     ? `${window.location.origin}/api/ical/${store.me.ical_token}` : '';
+  const isHouseholdMember = !!house;
+  // Household members can subscribe to everything or per arrangement;
+  // co-parents' tokens only ever reach their own arrangement.
+  const feeds = isHouseholdMember && store.arrangements.length > 1
+    ? [{ label: 'Everything (all arrangements)', url: icalBase },
+       ...store.arrangements.map(a => ({ label: a.name, url: `${icalBase}?arrangement=${a.id}` }))]
+    : [{ label: 'Custody calendar', url: icalBase }];
+
+  function copyFeed(f) {
+    navigator.clipboard.writeText(f.url);
+    toast.success(`${f.label} feed link copied`);
+  }
 
   async function createArrangement() {
     if (!arrName.trim()) return;
@@ -267,17 +279,18 @@ function HouseholdTools({ house, me, store, arr }) {
       <h2>Household tools</h2>
       <div className="row" style={{ alignItems: 'flex-start', gap: 36 }}>
         <div style={{ minWidth: 260 }}>
-          <label>Calendar feed (iCal)</label>
+          <label>Calendar feeds (iCal)</label>
           <p className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
-            Subscribe in Google/Apple Calendar to see custody days everywhere. Treat the link as private.
+            Subscribe in Google/Apple Calendar to see custody days everywhere. Treat the links as private.
           </p>
-          <div className="row" style={{ alignItems: 'center' }}>
-            <input readOnly value={icalUrl} onFocus={e => e.target.select()} />
-            <button className="btn small subtle" style={{ flex: 0 }}
-              onClick={() => { navigator.clipboard.writeText(icalUrl); toast.success('Calendar link copied'); }}>Copy</button>
-          </div>
+          {feeds.map(f => (
+            <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+              <span style={{ flex: 1, fontSize: 13.5 }}>{f.label}</span>
+              <button className="btn small subtle" style={{ flex: 'none' }} onClick={() => copyFeed(f)}>Copy link</button>
+            </div>
+          ))}
         </div>
-        <div style={{ minWidth: 260 }}>
+        {isHouseholdMember && <div style={{ minWidth: 260 }}>
           <label>Add another arrangement</label>
           <p className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
             e.g. your partner&apos;s kids with their co-parent (their own schedule and split).
@@ -296,7 +309,7 @@ function HouseholdTools({ house, me, store, arr }) {
           ) : (
             <button className="btn small subtle" onClick={() => setShowNewArr(true)}>+ New arrangement</button>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

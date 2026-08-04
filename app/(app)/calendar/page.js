@@ -206,28 +206,31 @@ function DayModal({ date, shown, me, store, onClose, onPropose }) {
         </div>
       )}
       <div className={`day-kids-wrap ${shown.length > 1 ? '' : 'single'}`}>
-        {shown.map(a => {
+        {shown.flatMap(a => {
           const groups = { h: [], c: [] };
           a.children.forEach(k => {
             const w = custodyFor(a.schedule, a.deviations, date, k.id);
             if (w) groups[w].push(k);
           });
-          return (
+          const sides = ['h', 'c'].filter(s => groups[s].length > 0);
+          if (!sides.length) return [(
             <Fragment key={a.id}>
               {shown.length > 1 && <b>{a.name}</b>}
+              <span />
+              <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>
+            </Fragment>
+          )];
+          return sides.map((s, i) => (
+            <Fragment key={a.id + s}>
+              {shown.length > 1 && <b>{i === 0 ? a.name : ''}</b>}
+              <span><span className={`pill ${s}`}>{sideName(a, s)}</span></span>
               <div className="dk-groups">
-                {['h', 'c'].map(s => groups[s].length > 0 && (
-                  <span key={s} className="side-group">
-                    <span className={`pill ${s}`}>{sideName(a, s)}</span>
-                    {groups[s].map(k => (
-                      <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>
-                    ))}
-                  </span>
+                {groups[s].map(k => (
+                  <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>
                 ))}
-                {!a.children.length && <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>}
               </div>
             </Fragment>
-          );
+          ));
         })}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 6px' }}>Conversation</div>
