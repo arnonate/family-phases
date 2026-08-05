@@ -35,6 +35,12 @@ Push the repo to GitHub, import it at [vercel.com](https://vercel.com), and add 
 
 Settings → People & invites. Enter the person's email; when they sign in with that address they're connected automatically — a co-parent to their arrangement, a partner to the whole household. There's no invite email yet, so send them the app link yourself.
 
+## Testing
+
+`npm test` runs the fast suite (no network): custody/balance/activity math, display-name rules, and page-level integration tests that render the dashboard, shell, and calendar against a faked Supabase — including the child-account gating. CI (GitHub Actions) runs the same suite plus a production build on every push.
+
+`npm run test:rls` is the security suite. It needs live credentials (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`) and verifies the row-level-security boundaries — outsider isolation, child read-only access, comment/expense deletion rules — using throwaway users it creates and deletes itself. It never touches existing family data, but run it after any schema or policy change.
+
 ## Things to know
 
 - **Approvals:** expenses above the arrangement's threshold (default $500) need the other parent's approval before they count toward the balance. Schedule changes are proposals until accepted. Both are instant while the co-parent hasn't joined yet.
