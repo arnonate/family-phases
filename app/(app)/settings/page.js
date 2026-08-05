@@ -22,6 +22,7 @@ export default function SettingsPage() {
       <ArrTabs arrangements={arrangements} value={sel} onChange={setSel} />
       <div className="grid cols-2">
         <div>
+          <MyProfile store={store} />
           <General key={'g' + arr.id} arr={arr} store={store} />
           <Children key={'k' + arr.id} arr={arr} store={store} />
         </div>
@@ -32,6 +33,39 @@ export default function SettingsPage() {
       </div>
       <HouseholdTools house={house} me={me} store={store} arr={arr} />
     </>
+  );
+}
+
+function MyProfile({ store }) {
+  const [name, setName] = useState(store.me?.name || '');
+  const [busy, setBusy] = useState(false);
+  const dirty = name.trim() !== (store.me?.name || '');
+
+  async function save() {
+    setBusy(true);
+    const { error } = await supa().from('profiles')
+      .update({ name: name.trim() }).eq('id', store.me.id);
+    if (error) toast.error(`Couldn't save: ${error.message}`);
+    await store.refresh();
+    setBusy(false);
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <h2>My profile</h2>
+      <div className="row" style={{ alignItems: 'flex-end' }}>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Your display name</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" />
+        </div>
+        <button className="btn" style={{ flex: 'none' }} disabled={busy || !dirty || !name.trim()} onClick={save}>
+          {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
+        </button>
+      </div>
+      <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+        Shown on comments, to-dos, and anywhere your name appears. Signed in as {store.me?.email}.
+      </p>
+    </div>
   );
 }
 
