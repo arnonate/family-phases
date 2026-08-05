@@ -13,7 +13,7 @@ function emit(t) {
 }
 
 export const toast = {
-  error: message => emit({ type: 'error', message }),
+  error: message => emit({ type: 'error', message, ttl: 6500 }),
   success: message => emit({ type: 'success', message, ttl: 4000 }),
 };
 
@@ -31,11 +31,10 @@ export function Toasts() {
   return (
     <div className="toasts">
       {items.map(t => (
-        <div key={t.id} className={`toast ${t.type}`} role="alert">
+        <div key={t.id} className={`toast ${t.type}`} role="alert" style={{ cursor: 'pointer' }}
+          onClick={() => setItems(v => v.filter(x => x.id !== t.id))}>
           <span style={{ flex: 1 }}>{t.message}</span>
-          <button aria-label="Dismiss" onClick={() => setItems(v => v.filter(x => x.id !== t.id))}>
-            <X size={15} strokeWidth={2.5} />
-          </button>
+          <X size={15} strokeWidth={2.5} style={{ flex: 'none', marginTop: 2 }} />
         </div>
       ))}
     </div>

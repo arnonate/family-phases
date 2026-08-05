@@ -252,7 +252,6 @@ function Schedule({ arr, store }) {
 function People({ arr, house, me, store }) {
   const [cpEmail, setCpEmail] = useState('');
   const [partnerEmail, setPartnerEmail] = useState('');
-  const [msg, setMsg] = useState('');
 
   const hasCoparent = (arr.arrangement_members || []).some(m => m.role === 'coparent');
   const houseMembers = house?.household_members || [];
@@ -265,7 +264,7 @@ function People({ arr, house, me, store }) {
       : { email: email.trim(), household_id: house.id, role: 'household', invited_by: me.id };
     const { error } = await supa().from('invites').insert(row);
     if (error) { toast.error(`Invite failed: ${error.message}`); return; }
-    setMsg(`Invite saved for ${email.trim()} — when they sign in with that email, they're connected automatically. Send them the app link!`);
+    toast.success(`Invite saved for ${email.trim()} — when they sign in with that email they're connected automatically. Send them the app link!`);
     setCpEmail(''); setPartnerEmail('');
     store.refresh();
   }
@@ -295,7 +294,6 @@ function People({ arr, house, me, store }) {
           <button className="btn small subtle" style={{ flex: 0 }} onClick={() => invite('partner')}>Invite</button>
         </div>
       </div>
-      {msg && <p className="muted" style={{ fontSize: 13 }}>{msg}</p>}
     </div>
   );
 }

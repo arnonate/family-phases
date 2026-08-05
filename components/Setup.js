@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { StructureHelp, UnitInput } from '@/components/ui';
+import { toast } from '@/components/Toast';
 
 export default function Setup() {
   const { me, refresh } = useStore();
@@ -13,11 +14,10 @@ export default function Setup() {
   const [split, setSplit] = useState(75);
   const [threshold, setThreshold] = useState(500);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
 
   async function create(e) {
     e.preventDefault();
-    setBusy(true); setErr('');
+    setBusy(true);
     const s = supa();
     try {
       if (name.trim()) await s.from('profiles').update({ name: name.trim() }).eq('id', me.id);
@@ -41,7 +41,7 @@ export default function Setup() {
       await s.from('schedules').insert({ arrangement_id: arrId, type: 'weeks' });
       await refresh();
     } catch (ex) {
-      setErr(ex.message || 'Something went wrong.');
+      toast.error(ex.message || 'Something went wrong.');
     } finally {
       setBusy(false);
     }
@@ -77,7 +77,6 @@ export default function Setup() {
           <button className="btn" disabled={busy} style={{ width: '100%' }}>
             {busy ? 'Creating…' : 'Create household'}
           </button>
-          {err && <p style={{ color: 'var(--red)', marginTop: 10, fontSize: 13 }}>{err}</p>}
         </form>
       </div>
       <p className="muted" style={{ fontSize: 13, marginTop: 14, textAlign: 'center' }}>
