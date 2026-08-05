@@ -268,25 +268,26 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
         </div>
       )}
       <div className={`day-kids-wrap ${shown.length > 1 ? '' : 'single'}`}>
-        {shown.flatMap(a => {
+        {shown.flatMap((a, ai) => {
           const groups = { h: [], c: [] };
           a.children.forEach(k => {
             const w = custodyFor(a.schedule, a.deviations, date, k.id);
             if (w) groups[w].push(k);
           });
+          const cls = i => (ai > 0 && i === 0 ? 'arr-start' : '');
           const sides = ['h', 'c'].filter(s => groups[s].length > 0);
           if (!sides.length) return [(
             <Fragment key={a.id}>
-              {shown.length > 1 && <b>{a.name}</b>}
-              <span />
-              <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>
+              {shown.length > 1 && <b className={cls(0)}>{a.name}</b>}
+              <span className={cls(0)} />
+              <span className={`muted ${cls(0)}`} style={{ fontSize: 12.5 }}>Add children in Settings</span>
             </Fragment>
           )];
           return sides.map((s, i) => (
             <Fragment key={a.id + s}>
-              {shown.length > 1 && <b>{i === 0 ? a.name : ''}</b>}
-              <span><span className={`pill ${s}`}>{nameFor(a, s)}</span></span>
-              <div className="dk-groups">
+              {shown.length > 1 && <b className={cls(i)}>{i === 0 ? a.name : ''}</b>}
+              <span className={cls(i)}><span className={`pill ${s}`}>{nameFor(a, s)}</span></span>
+              <div className={`dk-groups ${cls(i)}`}>
                 {groups[s].map(k => (
                   <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>
                 ))}
