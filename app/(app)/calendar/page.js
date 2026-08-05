@@ -9,7 +9,7 @@ import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
 import { confirmDelete } from '@/components/Confirm';
 import {
-  ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer,
+  ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer, activityOn,
 } from '@/lib/custody';
 
 export default function CalendarPage() {
@@ -40,7 +40,9 @@ export default function CalendarPage() {
     const totalKids = shown.reduce((s, a) => s + a.children.length, 0);
     const commentCount = shown.reduce((s, a) =>
       s + (a.day_comments || []).filter(c => c.date === dstr).length, 0);
-    return { who, transfer, dev, kidsHome, totalKids, commentCount };
+    const acts = shown.flatMap(a =>
+      (a.activities || []).filter(act => activityOn(act, dstr)).map(act => ({ ...act, arr: a })));
+    return { who, transfer, dev, kidsHome, totalKids, commentCount, acts };
   }
 
   const [y, m] = ym;
@@ -131,6 +133,10 @@ export default function CalendarPage() {
                 {info.who === 'mix' && (
                   <div className="who-tag" style={{ color: 'var(--purple)' }}>Split</div>
                 )}
+                {info.acts.slice(0, 2).map(act => (
+                  <div key={act.id} className="act-chip">{act.name}</div>
+                ))}
+                {info.acts.length > 2 && <div className="act-chip">+{info.acts.length - 2} more</div>}
                 {!active && info.who && info.totalKids > 0 && (
                   <span className="moon-flag">
                     <Moon size={14} frac={info.kidsHome.length / info.totalKids}
@@ -237,6 +243,30 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
           ));
         })}
       </div>
+      {(() => {
+        const acts = shown.flatMap(a =>
+          (a.activities || []).filter(act => activityOn(act, date)).map(act => ({ ...act, arr: a })));
+        if (!acts.length) return null;
+        return (
+          <>
+            <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 2px' }}>Activities</div>
+            {acts.map(act => {
+              const w = custodyFor(act.arr.schedule, act.arr.deviations, date,
+                act.child_ids?.[0] || act.arr.children[0]?.id);
+              return (
+                <div key={act.id} className="act-row">
+                  <b>{act.name}</b>
+                  <span className="muted">{[act.time, act.location].filter(Boolean).join(' · ')}</span>
+                  {act.child_ids?.length > 0 && (
+                    <span className="muted">{act.child_ids.map(id => kidName(act.arr, id)).join(', ')}</span>
+                  )}
+                  {w && <span className={`pill ${w}`} title="Whose day this lands on">{nameFor(act.arr, w)}</span>}
+                </div>
+              );
+            })}
+          </>
+        );
+      })()}
       <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 6px' }}>Conversation</div>
       <CommentThread
         comments={comments}

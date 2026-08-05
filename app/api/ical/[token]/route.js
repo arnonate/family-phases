@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { daySummary, addDays, todayStr } from '@/lib/custody';
+import { daySummary, addDays, todayStr, activityOn } from '@/lib/custody';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ export async function GET(request, { params }) {
   if (!ids.length) return icsResponse([]);
 
   const { data: arrs } = await admin.from('arrangements')
-    .select('*, children(*), schedules(*), deviations(*), arrangement_members(user_id, role, profiles(name))')
+    .select('*, children(*), schedules(*), deviations(*), activities(*), arrangement_members(user_id, role, profiles(name))')
     .in('id', ids);
 
   const events = [];
@@ -63,6 +63,21 @@ export async function GET(request, { params }) {
       }
       if (!cur && w && w !== '__end__') cur = { who: w, from: d };
     }
+
+    // activities as all-day entries with time/kids in the title
+    for (const act of a.activities || []) {
+      const kids = (act.child_ids || [])
+        .map(id => children.find(k => k.id === id)?.name).filter(Boolean).join(', ');
+      for (let i = 0; i <= 210; i++) {
+        const d = addDays(start, i);
+        if (!activityOn(act, d)) continue;
+        events.push({
+          start: d, endExclusive: addDays(d, 1),
+          title: `${act.name}${act.time ? ' ' + act.time : ''}${kids ? ` (${kids})` : ''}`,
+          location: act.location || null,
+        });
+      }
+    }
   }
   const calName = arrs?.length === 1 ? `Family Phases — ${arrs[0].name}` : 'Family Phases custody';
   return icsResponse(events, calName);
@@ -80,6 +95,7 @@ function icsResponse(events, calName = 'Family Phases custody') {
       `DTSTART;VALUE=DATE:${e.start.replaceAll('-', '')}`,
       `DTEND;VALUE=DATE:${e.endExclusive.replaceAll('-', '')}`,
       `SUMMARY:${e.title}`,
+      ...(e.location ? [`LOCATION:${e.location}`] : []),
       'TRANSP:TRANSPARENT',
       'END:VEVENT',
     ]),

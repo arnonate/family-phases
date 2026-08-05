@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { useStore, sideName, mySide, childIdentity } from '@/lib/store';
+import { useStore, sideName, mySide, childIdentity, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
+import { ArrTabs, useArrSelection, StructureHelp, UnitInput, KidChecks } from '@/components/ui';
+import { fmt } from '@/lib/custody';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
@@ -31,6 +32,7 @@ export default function SettingsPage() {
         </div>
         <div>
           <Schedule key={'s' + arr.id} arr={arr} store={store} />
+          <Activities key={'a' + arr.id} arr={arr} me={me} store={store} />
           <People key={'p' + arr.id} arr={arr} house={house} me={me} store={store} />
         </div>
       </div>
@@ -256,6 +258,101 @@ function Schedule({ arr, store }) {
       <button className="btn" disabled={busy || !dirty} onClick={save}>
         {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
       </button>
+    </div>
+  );
+}
+
+const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function Activities({ arr, me, store }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState('');
+  const [kids, setKids] = useState([]);
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [days, setDays] = useState([]);
+  const [time, setTime] = useState('');
+  const [location, setLocation] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function add() {
+    if (!name.trim() || !start || !end) { toast.error('Name, start, and end dates are required.'); return; }
+    if (end < start) { toast.error('The end date can’t be before the start.'); return; }
+    if (start !== end && !days.length) { toast.error('Pick at least one weekday, or set both dates to the same day for a one-off.'); return; }
+    setBusy(true);
+    const { error } = await supa().from('activities').insert({
+      arrangement_id: arr.id, name: name.trim(), child_ids: kids,
+      start_date: start, end_date: end, days: start === end ? [] : days,
+      time: time.trim() || null, location: location.trim() || null, created_by: me.id,
+    });
+    setBusy(false);
+    if (error) { toast.error(`Couldn't save: ${error.message}`); return; }
+    toast.success(`${name.trim()} added`);
+    setShowAdd(false);
+    setName(''); setKids([]); setStart(''); setEnd(''); setDays([]); setTime(''); setLocation('');
+    store.refresh();
+  }
+  async function remove(act) {
+    if (!(await confirmDelete(`Delete ${act.name} and all its calendar entries?`))) return;
+    const { error } = await supa().from('activities').delete().eq('id', act.id);
+    if (error) toast.error(`Couldn't delete: ${error.message}`);
+    store.refresh();
+  }
+  const desc = act => {
+    const parts = [];
+    if (act.start_date === act.end_date) parts.push(fmt(act.start_date));
+    else parts.push(`${(act.days || []).map(d => DOW[d]).join('')} · ${fmt(act.start_date, { month: 'short', day: 'numeric' })}–${fmt(act.end_date, { month: 'short', day: 'numeric' })}`);
+    if (act.time) parts.push(act.time);
+    if (act.location) parts.push(act.location);
+    return parts.join(' · ');
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <h2>Activities <button className="btn small" onClick={() => setShowAdd(v => !v)}>{showAdd ? 'Cancel' : '+ Add'}</button></h2>
+      {!arr.activities?.length && !showAdd && (
+        <div className="empty">Sports, camps, lessons — they show on the calendar with whose day they land on.</div>
+      )}
+      {(arr.activities || []).map(act => (
+        <div key={act.id} className="todo">
+          <div style={{ flex: 1 }}>
+            <div className="t-title">{act.name}</div>
+            <div className="t-meta">
+              {desc(act)}
+              {act.child_ids?.length > 0 && <> · {act.child_ids.map(id => kidName(arr, id)).join(', ')}</>}
+            </div>
+          </div>
+          <button className="btn danger small" onClick={() => remove(act)}>✕</button>
+        </div>
+      ))}
+      {showAdd && (
+        <div style={{ marginTop: 10 }}>
+          <div className="field"><label>Activity name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Soccer practice" autoFocus /></div>
+          <div className="field"><label>Which children?</label>
+            <KidChecks children={arr.children} value={kids} onChange={setKids} /></div>
+          <div className="row">
+            <div className="field"><label>Season starts</label><input type="date" value={start} onChange={e => setStart(e.target.value)} /></div>
+            <div className="field"><label>Season ends</label><input type="date" value={end} onChange={e => setEnd(e.target.value)} /></div>
+          </div>
+          <div className="field"><label>Repeats on (leave empty for a one-day event)</label>
+            <div className="dow-row">
+              {DOW.map((d, i) => (
+                <button key={i} type="button" className={`dow ${days.includes(i) ? 'on' : ''}`}
+                  onClick={() => setDays(v => v.includes(i) ? v.filter(x => x !== i) : [...v, i])}>{d}</button>
+              ))}
+            </div>
+          </div>
+          <div className="row">
+            <div className="field"><label>Time</label><input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 5:30 PM" /></div>
+            <div className="field"><label>Location</label><input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Riverside Park" /></div>
+          </div>
+          <button className="btn" disabled={busy} onClick={add}>{busy ? 'Saving…' : 'Add activity'}</button>
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+            For a single game or tournament day, set both dates to that day.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

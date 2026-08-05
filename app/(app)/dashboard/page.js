@@ -1,12 +1,61 @@
 'use client';
 import Link from 'next/link';
-import { useStore, sideName, kidSideName, mySide, childIdentity } from '@/lib/store';
+import { useStore, sideName, kidSideName, mySide, childIdentity, kidName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import {
-  todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance,
+  todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance, activityOn,
 } from '@/lib/custody';
 import Moon, { phaseLabel } from '@/components/Moon';
 import { ArrowLeftRight } from 'lucide-react';
+
+// Shared 7-day list: per-day custody per arrangement + that day's activities.
+function WeekList({ arrangements, tod, nameForSide, actFilter }) {
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <h2>Week at a glance</h2>
+      {[...Array(7)].map((_, i) => {
+        const d = addDays(tod, i);
+        const acts = arrangements.flatMap(a =>
+          (a.activities || []).filter(act => activityOn(act, d) && (!actFilter || actFilter(act)))
+            .map(act => ({ ...act, arr: a })));
+        return (
+          <div key={d} className="wl-row">
+            <div className="wl-date">
+              <b>{i === 0 ? 'Today' : pd(d).toLocaleDateString(undefined, { weekday: 'short' })}</b>
+              {pd(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </div>
+            <div className="wl-body">
+              <div className="wl-arrs">
+                {arrangements.map(a => {
+                  const w = daySummary(a.schedule, a.deviations, a.children, d);
+                  return (
+                    <span key={a.id} className="wl-arr">
+                      {arrangements.length > 1 && <span className="muted">{a.name} </span>}
+                      <span className={`pill ${w === 'mix' || !w ? 'cat' : w}`}>
+                        {w ? (w === 'mix' ? 'Split' : nameForSide(a, w)) : '—'}
+                      </span>
+                      {isTransfer(a.schedule, a.deviations, a.children, d) &&
+                        <ArrowLeftRight size={11} strokeWidth={2.5} style={{ verticalAlign: '-1px', marginLeft: 4, color: 'var(--slate-blue)' }} />}
+                    </span>
+                  );
+                })}
+              </div>
+              {acts.map(act => (
+                <div key={act.id} className="wl-act">
+                  {act.time && <b>{act.time}</b>} {act.name}
+                  {act.child_ids?.length > 0 && (
+                    <span className="muted"> — {act.child_ids.map(id => kidName(act.arr, id)).join(', ')}</span>
+                  )}
+                  {act.location && <span className="muted"> · {act.location}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function ChildDashboard({ child, tod }) {
   const { arr, kid } = child;
@@ -50,6 +99,8 @@ function ChildDashboard({ child, tod }) {
           })}
         </div>
       </div>
+      <WeekList arrangements={[arr]} tod={tod} nameForSide={kidSideName}
+        actFilter={act => !act.child_ids?.length || act.child_ids.includes(kid.id)} />
       {myTodos.length > 0 && (
         <div className="card">
           <h2>Your to-dos</h2>
@@ -188,6 +239,8 @@ export default function Dashboard() {
           </div>
         );
       })}
+
+      <WeekList arrangements={arrangements} tod={tod} nameForSide={sideName} />
 
       <div className="card">
         <h2>Open to-dos <Link href="/todos" className="sub">see all →</Link></h2>

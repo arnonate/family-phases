@@ -540,5 +540,29 @@ begin
   return n;
 end $$;
 
+-- ============ ACTIVITIES (sports, camps, lessons) ============
+-- Recurring: season range + weekdays. One-off game: start_date = end_date.
+
+create table activities (
+  id uuid primary key default gen_random_uuid(),
+  arrangement_id uuid not null references arrangements on delete cascade,
+  name text not null,
+  child_ids uuid[] default '{}',
+  start_date date not null,
+  end_date date not null,
+  days int[] default '{}',   -- 0=Sun … 6=Sat; ignored for one-day activities
+  time text,                 -- display text, e.g. "5:30 PM"
+  location text,
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+alter table activities enable row level security;
+create policy "activities rw" on activities for all
+  using (public.can_access_arrangement(arrangement_id))
+  with check (public.can_access_arrangement(arrangement_id));
+create policy "child reads activities" on activities for select
+  using (public.is_child_of_arrangement(arrangement_id));
+
 -- ============ REALTIME ============
-alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments, day_comments;
+alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments, day_comments, activities;

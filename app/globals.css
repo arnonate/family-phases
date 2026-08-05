@@ -122,6 +122,20 @@ tr:last-child td{border-bottom:none}
 .todo .t-title{font-weight:600}
 .todo .t-meta{font-size:12px;color:var(--muted);margin-top:1px}
 .todo .t-meta .overdue{color:var(--red);font-weight:700}
+.dow-row{display:flex;gap:6px}
+.dow{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
+.dow.on{background:var(--mid-navy);border-color:var(--mid-navy);color:var(--full-moon)}
+.act-chip{font-size:9.5px;font-weight:700;color:var(--slate-blue);background:rgba(255,255,255,.75);border-radius:5px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.act-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.act-row:last-of-type{border-bottom:none}
+.wl-row{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.wl-row:last-of-type{border-bottom:none}
+.wl-date{flex:0 0 78px;font-size:13px;color:var(--muted)}
+.wl-date b{display:block;color:var(--ink);font-size:13.5px}
+.wl-body{flex:1;min-width:0}
+.wl-arrs{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+.wl-act{font-size:13px;margin-top:4px}
+.wl-act b{font-size:12px;color:var(--slate-blue)}
 .cycle-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
 .cycle-day{padding:8px 2px;text-align:center;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--line)}
 .cycle-day.h{background:var(--me-soft);color:var(--me);border-color:var(--me)}
