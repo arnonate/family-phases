@@ -38,8 +38,13 @@ export default function Login() {
 
   return (
     <div className="login-box">
-      <img src="/brand/family-phases-lockup-on-light.svg" alt="Family Phases — every week, in phase"
-        style={{ width: '100%', maxWidth: 360, margin: '0 auto 16px', display: 'block' }} />
+      <div className="login-brand">
+        <img src="/brand/family-phases-mark-on-light.svg" alt="" />
+        <div>
+          <div className="lb-word">Family Phases</div>
+          <div className="lb-tag">Every week, in phase</div>
+        </div>
+      </div>
       <div className="card">
         {sent ? (
           <form onSubmit={verify}>
