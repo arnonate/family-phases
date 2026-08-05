@@ -183,7 +183,7 @@ function Children({ arr, store }) {
             <input type="color" style={{ flex: '0 0 34px', minWidth: 0, padding: 2, height: 34 }} defaultValue={k.color}
               onBlur={e => e.target.value !== k.color && update(k, { color: e.target.value })} />
             {k.user_id
-              ? <span className="pill approved" style={{ flex: 'none' }} title="Has a read-only login">login ✓</span>
+              ? <span className="pill approved" style={{ flex: 'none', minWidth: 0 }} title="Has a read-only login">login ✓</span>
               : <button className="btn small subtle" style={{ flex: 'none', minWidth: 0 }} title="Invite a read-only login"
                   onClick={() => { setInviteKid(inviteKid === k.id ? null : k.id); setInviteEmail(''); }}>Invite</button>}
             <button className="btn danger small" style={{ flex: 'none', minWidth: 0 }} onClick={() => remove(k)}>✕</button>
