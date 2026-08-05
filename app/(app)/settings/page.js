@@ -106,7 +106,7 @@ function General({ arr, store }) {
       <h2>Arrangement</h2>
       <div className="field"><label>Name<StructureHelp /></label><input value={name} onChange={e => setName(e.target.value)} /></div>
       <div className="row">
-        <div className="field"><label>Household parent label</label>
+        <div className="field"><label>Household label</label>
           <input value={hLabel} onChange={e => setHLabel(e.target.value)} placeholder="used until they sign up" /></div>
         <div className="field"><label>Co-parent label</label>
           <input value={cLabel} onChange={e => setCLabel(e.target.value)} placeholder="used until they sign up" /></div>
