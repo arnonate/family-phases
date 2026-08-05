@@ -79,10 +79,6 @@ export default function Setup() {
           </button>
         </form>
       </div>
-      <p className="muted" style={{ fontSize: 13, marginTop: 14, textAlign: 'center' }}>
-        Invited by someone? Their invitation is linked to your email address —
-        if you signed in with that address, it&apos;s applied automatically. Try reloading.
-      </p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 import { useState, Fragment } from 'react';
-import { useStore, sideName, mySide, kidName, childIdentity } from '@/lib/store';
+import { useStore, sideName, kidSideName, mySide, kidName, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon, { phaseLabel } from '@/components/Moon';
@@ -23,6 +23,7 @@ export default function CalendarPage() {
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
   const readOnly = !!childIdentity(arrangements, me.id);
+  const nameFor = readOnly ? kidSideName : sideName;
   const active = sel === 'all' ? null : arrangements.find(a => a.id === sel);
   const shown = active ? [active] : arrangements;
 
@@ -124,7 +125,7 @@ export default function CalendarPage() {
                 {info.transfer && <span className="transfer-flag" title="Transfer day"><ArrowLeftRight size={12} strokeWidth={2.5} /></span>}
                 {info.who && info.who !== 'mix' && (
                   <div className={`who-tag ${info.who}`}>
-                    {info.who === 'h' ? (active ? sideName(active, 'h') : 'Home') : (active ? sideName(active, 'c') : 'Away')}
+                    {info.who === 'h' ? (active ? nameFor(active, 'h') : 'Home') : (active ? nameFor(active, 'c') : 'Away')}
                   </div>
                 )}
                 {info.who === 'mix' && (
@@ -146,8 +147,8 @@ export default function CalendarPage() {
           })}
         </div>
         <div className="legend">
-          <span><i style={{ background: 'var(--me-soft)' }} />{active ? `With ${sideName(active, 'h')}` : 'All kids home'}</span>
-          <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${sideName(active, 'c')}` : 'All kids away'}</span>
+          <span><i style={{ background: 'var(--me-soft)' }} />{active ? `With ${nameFor(active, 'h')}` : 'All kids home'}</span>
+          <span><i style={{ background: 'var(--cp-soft)' }} />{active ? `With ${nameFor(active, 'c')}` : 'All kids away'}</span>
           <span><ArrowLeftRight size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Transfer day</span>
           <span><MessageCircle size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Comments</span>
           {!active && <span><Moon size={13} frac={0.5} /> Fill = share of kids home</span>}
@@ -173,7 +174,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {dayModal && <DayModal date={dayModal} shown={shown} me={me} store={store} readOnly={readOnly}
+      {dayModal && <DayModal date={dayModal} shown={shown} me={me} store={store} readOnly={readOnly} nameFor={nameFor}
         onClose={() => setDayModal(null)}
         onPropose={d => { setDayModal(null); setDevModal({ date: d }); }} />}
       {devModal && <DeviationModal init={devModal} arrangements={arrangements}
@@ -183,7 +184,7 @@ export default function CalendarPage() {
   );
 }
 
-function DayModal({ date, shown, me, store, readOnly, onClose, onPropose }) {
+function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClose, onPropose }) {
   const [arrId, setArrId] = useState(shown[0].id);
   const comments = shown
     .flatMap(a => (a.day_comments || [])
@@ -226,7 +227,7 @@ function DayModal({ date, shown, me, store, readOnly, onClose, onPropose }) {
           return sides.map((s, i) => (
             <Fragment key={a.id + s}>
               {shown.length > 1 && <b>{i === 0 ? a.name : ''}</b>}
-              <span><span className={`pill ${s}`}>{sideName(a, s)}</span></span>
+              <span><span className={`pill ${s}`}>{nameFor(a, s)}</span></span>
               <div className="dk-groups">
                 {groups[s].map(k => (
                   <span key={k.id} className="dk-kid"><span className="kid-dot" style={{ background: k.color }} />{k.name}</span>

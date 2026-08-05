@@ -33,6 +33,8 @@ create table arrangements (
   transfer_time text default '6:00 PM',
   h_label text,   -- display name for household-side parent (before/without signup)
   c_label text,   -- display name for co-parent
+  kid_h_label text,  -- what children see for the household-side parent (e.g. Dad)
+  kid_c_label text,  -- what children see for the co-parent (e.g. Mom)
 
   created_at timestamptz default now()
 );
@@ -509,6 +511,9 @@ begin
     end if;
     if inv.child_id is not null then
       update children set user_id = auth.uid() where id = inv.child_id;
+      -- children already have names in the app; their profile inherits it
+      update profiles set name = (select name from children where id = inv.child_id)
+        where id = auth.uid();
     end if;
     update invites set claimed = true where id = inv.id;
     n := n + 1;

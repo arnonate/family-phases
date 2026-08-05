@@ -76,6 +76,8 @@ function General({ arr, store }) {
   const [name, setName] = useState(arr.name);
   const [hLabel, setHLabel] = useState(arr.h_label || '');
   const [cLabel, setCLabel] = useState(arr.c_label || '');
+  const [kidH, setKidH] = useState(arr.kid_h_label || '');
+  const [kidC, setKidC] = useState(arr.kid_c_label || '');
   const [split, setSplit] = useState(arr.split_pct);
   const [threshold, setThreshold] = useState(Number(arr.approval_threshold));
   const [time, setTime] = useState(arr.transfer_time || '');
@@ -84,6 +86,8 @@ function General({ arr, store }) {
   const dirty = name !== arr.name
     || hLabel !== (arr.h_label || '')
     || cLabel !== (arr.c_label || '')
+    || kidH !== (arr.kid_h_label || '')
+    || kidC !== (arr.kid_c_label || '')
     || +split !== arr.split_pct
     || +threshold !== Number(arr.approval_threshold)
     || time !== (arr.transfer_time || '');
@@ -92,6 +96,7 @@ function General({ arr, store }) {
     setBusy(true);
     const { error } = await supa().from('arrangements').update({
       name, h_label: hLabel || null, c_label: cLabel || null,
+      kid_h_label: kidH.trim() || null, kid_c_label: kidC.trim() || null,
       split_pct: Math.min(100, Math.max(0, +split || 0)),
       approval_threshold: Math.max(0, +threshold || 0),
       transfer_time: time || null,
@@ -110,6 +115,12 @@ function General({ arr, store }) {
           <input value={hLabel} onChange={e => setHLabel(e.target.value)} placeholder="used until they sign up" /></div>
         <div className="field"><label>Co-parent label</label>
           <input value={cLabel} onChange={e => setCLabel(e.target.value)} placeholder="used until they sign up" /></div>
+      </div>
+      <div className="row">
+        <div className="field"><label>Kids see household side as</label>
+          <input value={kidH} onChange={e => setKidH(e.target.value)} placeholder="e.g. Dad" /></div>
+        <div className="field"><label>Kids see co-parent as</label>
+          <input value={kidC} onChange={e => setKidC(e.target.value)} placeholder="e.g. Mom" /></div>
       </div>
       <div className="row">
         <div className="field"><label>{mySide(arr, store.me.id) === 'h' ? 'My share' : `${sideName(arr, 'h')}'s share`}</label>

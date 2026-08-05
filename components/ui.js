@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
 export function Modal({ title, onClose, children }) {
   useEffect(() => {
@@ -10,7 +11,10 @@ export function Modal({ title, onClose, children }) {
   return (
     <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
-        <h3>{title}</h3>
+        <div className="modal-head">
+          <h3>{title}</h3>
+          <button className="modal-x" aria-label="Close" onClick={onClose}><X size={18} strokeWidth={2.5} /></button>
+        </div>
         {children}
       </div>
     </div>

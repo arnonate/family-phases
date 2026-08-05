@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useStore, sideName, mySide, childIdentity } from '@/lib/store';
+import { useStore, sideName, kidSideName, mySide, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import {
   todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance,
@@ -18,7 +18,7 @@ function ChildDashboard({ child, tod }) {
       <div className="grid cols-2" style={{ marginBottom: 16 }}>
         <div className="card">
           <h2>Tonight you&apos;re with</h2>
-          <div className="stat">{w ? sideName(arr, w) : '—'}<small>Hi {kid.name} 👋</small></div>
+          <div className="stat">{w ? kidSideName(arr, w) : '—'}<small>Hi {kid.name} 👋</small></div>
         </div>
         <div className="card">
           <h2>Next switch</h2>
@@ -39,7 +39,7 @@ function ChildDashboard({ child, tod }) {
                 <b>{pd(d).toLocaleDateString(undefined, { weekday: 'short' })}</b>
                 {pd(d).getDate()}
                 <div style={{ fontWeight: 700, fontSize: 10.5, color: dw === 'h' ? 'var(--me)' : '#b45309' }}>
-                  {dw ? sideName(arr, dw) : ''}
+                  {dw ? kidSideName(arr, dw) : ''}
                 </div>
               </div>
             );
