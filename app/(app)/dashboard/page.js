@@ -97,6 +97,9 @@ export default function Dashboard() {
 
   return (
     <>
+      <h1 style={{ fontSize: 22, margin: '2px 0 14px' }}>
+        Hello, {me.name?.split(' ')[0] || 'there'} 👋
+      </h1>
       {totalKids > 0 && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
           <Moon size={52} frac={homeKidsAll.length / totalKids} title="Tonight's phase" />
