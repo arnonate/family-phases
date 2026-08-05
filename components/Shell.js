@@ -29,7 +29,7 @@ export default function Shell({ children }) {
   const needsSetup = !store.arrangements.length && !store.households.length;
   const unread = store.notifications.filter(n => !n.read).length;
   const child = store.me && childIdentity(store.arrangements, store.me.id);
-  const nav = child ? NAV.filter(([href]) => href === '/dashboard' || href === '/calendar') : NAV;
+  const nav = child ? NAV.filter(([href]) => ['/dashboard', '/calendar', '/todos'].includes(href)) : NAV;
 
   async function markAllRead() {
     const ids = store.notifications.filter(n => !n.read).map(n => n.id);

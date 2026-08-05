@@ -336,6 +336,7 @@ function HouseholdTools({ house, me, store, arr }) {
     const arrId = crypto.randomUUID();
     const { error } = await s.from('arrangements').insert({
       id: arrId, household_id: house.id, name: arrName.trim(), split_pct: split, approval_threshold: 500,
+      h_label: 'Us', c_label: 'Them',
     });
     if (error) { toast.error(`Couldn't create arrangement: ${error.message}`); return; }
     const { error: e2 } = await s.from('arrangement_members')

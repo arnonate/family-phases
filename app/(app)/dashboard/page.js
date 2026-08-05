@@ -12,7 +12,8 @@ function ChildDashboard({ child, tod }) {
   const { arr, kid } = child;
   const w = custodyFor(arr.schedule, arr.deviations, tod, kid.id);
   const nt = nextTransfer(arr.schedule, arr.deviations, [kid], addDays(tod, -1));
-  const myTodos = (arr.todos || []).filter(t => !t.done);
+  // dashboard shows only the child's own open items; the To-Dos tab has everything
+  const myTodos = (arr.todos || []).filter(t => !t.done && t.child_id === kid.id);
   return (
     <>
       <h1 style={{ fontSize: 22, margin: '2px 0 14px' }}>

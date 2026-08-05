@@ -32,7 +32,7 @@ export default function Setup() {
       const { error: e3 } = await s.from('arrangements').insert({
         id: arrId, household_id: houseId, name: arrName,
         split_pct: split, approval_threshold: threshold,
-        h_label: name.trim() || 'Me', c_label: cpName.trim() || 'Co-parent',
+        h_label: 'Us', c_label: cpName.trim() || 'Them',
       });
       if (e3) throw e3;
       const { error: e4 } = await s.from('arrangement_members')

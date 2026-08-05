@@ -493,8 +493,8 @@ create policy "child reads schedule" on schedules for select
   using (public.is_child_of_arrangement(arrangement_id));
 create policy "child reads accepted deviations" on deviations for select
   using (public.is_child_of_arrangement(arrangement_id) and status = 'accepted');
-create policy "child reads own todos" on todos for select
-  using (exists (select 1 from children c where c.id = todos.child_id and c.user_id = auth.uid()));
+create policy "child reads arrangement todos" on todos for select
+  using (public.is_child_of_arrangement(arrangement_id));
 create policy "child reads day comments" on day_comments for select
   using (public.is_child_of_arrangement(arrangement_id));
 create policy "child writes day comments" on day_comments for insert

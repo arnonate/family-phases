@@ -17,8 +17,31 @@ export default function TodosPage() {
   const [openThread, setOpenThread] = useState(null); // todo id
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
-  if (childIdentity(arrangements, me.id)) {
-    return <div className="empty">Your to-dos show on your dashboard.</div>;
+  const child = childIdentity(arrangements, me.id);
+  if (child) {
+    const tod = todayStr();
+    const list = child.arr.todos || [];
+    return (
+      <div className="card">
+        <h2>To-dos</h2>
+        {list.length === 0 && <div className="empty">Nothing here yet.</div>}
+        {list.map(t => {
+          const overdue = !t.done && t.due && t.due < tod;
+          return (
+            <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
+              <input type="checkbox" checked={t.done} disabled readOnly />
+              <div style={{ flex: 1 }}>
+                <div className="t-title">{t.title}</div>
+                <div className="t-meta">
+                  {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
+                  {t.child_id && <>{t.due ? ' · ' : ''}{kidName(child.arr, t.child_id)}</>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   }
   const shown = sel === 'all' ? arrangements : arrangements.filter(a => a.id === sel);
   const todos = shown.flatMap(a => a.todos.map(t => ({ ...t, arr: a })))
