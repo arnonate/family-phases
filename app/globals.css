@@ -172,7 +172,7 @@ tr:last-child td{border-bottom:none}
 .day-kids-wrap{display:grid;grid-template-columns:max-content max-content 1fr;column-gap:14px;align-items:center}
 .day-kids-wrap.single{grid-template-columns:max-content 1fr}
 .day-kids-wrap>*{padding:5px 0}
-.day-kids-wrap .arr-start{border-top:1px solid var(--line);padding-top:10px}
+.arr-divider{grid-column:1 / -1;border-top:1px solid var(--line);padding:0 !important;margin:3px 0}
 .day-kids-wrap b{font-size:12px}
 .dk-groups{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px}
 .side-group{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
