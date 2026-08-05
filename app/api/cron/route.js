@@ -26,7 +26,7 @@ export async function GET() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Family Phases <notifications@resend.dev>',
+          from: process.env.NOTIFY_EMAIL_FROM || 'Family Phases <phases@natearnold.me>',
           to: [to],
           subject: 'Family Phases update',
           text: `${n.message}\n\nOpen Family Phases: ${process.env.NEXT_PUBLIC_APP_URL || ''}`,
