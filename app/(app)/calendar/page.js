@@ -237,7 +237,6 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
           ));
         })}
       </div>
-      {!readOnly && <>
       <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 6px' }}>Conversation</div>
       <CommentThread
         comments={comments}
@@ -255,7 +254,6 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
         })).error}
         onDelete={async c => (await supa().from('day_comments').delete().eq('id', c.id)).error}
       />
-      </>}
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Close</button>
         {!readOnly && <button className="btn" onClick={() => onPropose(date)}>Propose change</button>}

@@ -195,7 +195,18 @@ returns boolean language sql security definer stable set search_path = public as
     join arrangement_members am on am.arrangement_id = a.id
     join household_members hm on hm.household_id = a.household_id
     where (hm.user_id = auth.uid() and am.user_id = other)
-       or (am.user_id = auth.uid() and hm.user_id = other));
+       or (am.user_id = auth.uid() and hm.user_id = other))
+  or exists (  -- child account <-> anyone attached to the child's arrangement
+    select 1 from children c
+    join arrangements a on a.id = c.arrangement_id
+    where (c.user_id = auth.uid() and (
+             exists (select 1 from arrangement_members am where am.arrangement_id = a.id and am.user_id = other)
+             or exists (select 1 from household_members hm where hm.household_id = a.household_id and hm.user_id = other)
+             or exists (select 1 from children c2 where c2.arrangement_id = a.id and c2.user_id = other)))
+       or (c.user_id = other and (
+             exists (select 1 from arrangement_members am where am.arrangement_id = a.id and am.user_id = auth.uid())
+             or exists (select 1 from household_members hm where hm.household_id = a.household_id and hm.user_id = auth.uid())
+             or exists (select 1 from children c2 where c2.arrangement_id = a.id and c2.user_id = auth.uid()))));
 $$;
 
 -- Bootstrap: create a household and its first membership atomically.
@@ -484,6 +495,10 @@ create policy "child reads accepted deviations" on deviations for select
   using (public.is_child_of_arrangement(arrangement_id) and status = 'accepted');
 create policy "child reads own todos" on todos for select
   using (exists (select 1 from children c where c.id = todos.child_id and c.user_id = auth.uid()));
+create policy "child reads day comments" on day_comments for select
+  using (public.is_child_of_arrangement(arrangement_id));
+create policy "child writes day comments" on day_comments for insert
+  with check (public.is_child_of_arrangement(arrangement_id) and author = auth.uid());
 
 -- Parents may invite a child by email
 drop policy "create invites" on invites;
