@@ -30,7 +30,7 @@ export async function GET() {
   let sent = 0;
   for (const { to, name, items } of byUser.values()) {
     const when = ts => new Date(ts).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles',
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago',
     });
     const lines = items.map(n => `• ${n.message} (${when(n.created_at)})`).join('\n');
     const res = await fetch('https://api.resend.com/emails', {
