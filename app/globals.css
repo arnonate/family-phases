@@ -136,6 +136,12 @@ tr:last-child td{border-bottom:none}
 .wl-arrs{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12.5px}
 .wl-act{font-size:13px;margin-top:4px}
 .wl-act b{font-size:12px;color:var(--slate-blue)}
+.view-toggle{display:flex;border:1.5px solid var(--line);border-radius:9px;overflow:hidden}
+.view-toggle button{background:#fff;border:none;padding:7px 10px;cursor:pointer;color:var(--muted);display:flex}
+.view-toggle button.on{background:var(--mid-navy);color:var(--full-moon)}
+.cal-lr{cursor:pointer;padding-left:8px;padding-right:8px;margin:0 -8px;border-radius:10px}
+.cal-lr:hover{background:var(--me-softer)}
+.cal-lr.today{background:var(--me-softer);border-bottom-color:transparent}
 .cycle-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
 .cycle-day{padding:8px 2px;text-align:center;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--line)}
 .cycle-day.h{background:var(--me-soft);color:var(--me);border-color:var(--me)}

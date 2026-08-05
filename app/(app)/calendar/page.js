@@ -4,7 +4,7 @@ import { useStore, sideName, kidSideName, mySide, kidName, childIdentity } from 
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon, { phaseLabel } from '@/components/Moon';
-import { ArrowLeftRight, CalendarDays, MessageCircle } from 'lucide-react';
+import { ArrowLeftRight, CalendarDays, MessageCircle, LayoutGrid, List } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
 import { confirmDelete } from '@/components/Confirm';
@@ -20,6 +20,9 @@ export default function CalendarPage() {
   const [ym, setYm] = useState([now.getFullYear(), now.getMonth()]);
   const [dayModal, setDayModal] = useState(null);      // date string
   const [devModal, setDevModal] = useState(null);      // {date} | true
+  const [view, setView] = useState(() =>
+    (typeof window !== 'undefined' && localStorage.getItem('fp_calview')) || 'grid');
+  function switchView(v) { setView(v); try { localStorage.setItem('fp_calview', v); } catch {} }
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
   const readOnly = !!childIdentity(arrangements, me.id);
@@ -108,13 +111,18 @@ export default function CalendarPage() {
       <div className="card">
         <div className="cal-head">
           <h2>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <button className="btn small subtle" onClick={() => shift(-1)}>←</button>
             <button className="btn small subtle" onClick={() => setYm([now.getFullYear(), now.getMonth()])}>Today</button>
             <button className="btn small subtle" onClick={() => shift(1)}>→</button>
+            <div className="view-toggle">
+              <button className={view === 'grid' ? 'on' : ''} aria-label="Month grid" onClick={() => switchView('grid')}><LayoutGrid size={14} /></button>
+              <button className={view === 'list' ? 'on' : ''} aria-label="List view" onClick={() => switchView('list')}><List size={14} /></button>
+            </div>
             {!readOnly && <button className="btn small" onClick={() => setDevModal({ date: tod })}>+ Propose change</button>}
           </div>
         </div>
+        {view === 'grid' && <>
         <div className="cal-grid">
           {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} className="cal-dow">{d}</div>)}
           {cells.map(c => {
@@ -133,10 +141,6 @@ export default function CalendarPage() {
                 {info.who === 'mix' && (
                   <div className="who-tag" style={{ color: 'var(--purple)' }}>Split</div>
                 )}
-                {info.acts.slice(0, 2).map(act => (
-                  <div key={act.id} className="act-chip">{act.name}</div>
-                ))}
-                {info.acts.length > 2 && <div className="act-chip">+{info.acts.length - 2} more</div>}
                 {!active && info.who && info.totalKids > 0 && (
                   <span className="moon-flag">
                     <Moon size={14} frac={info.kidsHome.length / info.totalKids}
@@ -159,6 +163,54 @@ export default function CalendarPage() {
           <span><MessageCircle size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} /> Comments</span>
           {!active && <span><Moon size={13} frac={0.5} /> Fill = share of kids home</span>}
         </div>
+        </>}
+        {view === 'list' && (
+          <div>
+            {[...Array(new Date(y, m + 1, 0).getDate())].map((_, i) => {
+              const dstr = ds(new Date(y, m, i + 1));
+              const info = cellInfo(dstr);
+              return (
+                <div key={dstr} className={`wl-row cal-lr ${dstr === tod ? 'today' : ''}`}
+                  onClick={() => setDayModal(dstr)}>
+                  <div className="wl-date">
+                    <b>{pd(dstr).toLocaleDateString(undefined, { weekday: 'short' })}</b>
+                    {pd(dstr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="wl-body">
+                    <div className="wl-arrs">
+                      {shown.map(a => {
+                        const w = daySummary(a.schedule, a.deviations, a.children, dstr);
+                        return (
+                          <span key={a.id} className="wl-arr">
+                            {shown.length > 1 && <span className="muted">{a.name} </span>}
+                            <span className={`pill ${w === 'mix' || !w ? 'cat' : w}`}>
+                              {w ? (w === 'mix' ? 'Split' : nameFor(a, w)) : '—'}
+                            </span>
+                          </span>
+                        );
+                      })}
+                      {info.transfer && <ArrowLeftRight size={11} strokeWidth={2.5} style={{ color: 'var(--slate-blue)' }} />}
+                      {info.commentCount > 0 && (
+                        <span className="mini" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <MessageCircle size={10} strokeWidth={2.5} />{info.commentCount}
+                        </span>
+                      )}
+                    </div>
+                    {info.acts.map(act => (
+                      <div key={act.id} className="wl-act">
+                        {act.time && <b>{act.time}</b>} {act.name}
+                        {act.child_ids?.length > 0 && (
+                          <span className="muted"> — {act.child_ids.map(id => kidName(act.arr, id)).join(', ')}</span>
+                        )}
+                        {act.location && <span className="muted"> · {act.location}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
