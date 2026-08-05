@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useStore, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import Setup from '@/components/Setup';
-import { Bell, X } from 'lucide-react';
+import { Bell, X, Menu, LogOut } from 'lucide-react';
 import { Toasts } from '@/components/Toast';
 import { ConfirmHost } from '@/components/Confirm';
 
@@ -22,6 +22,7 @@ export default function Shell({ children }) {
   const path = usePathname();
   const router = useRouter();
   const [showNotifs, setShowNotifs] = useState(false);
+  const [drawer, setDrawer] = useState(false);
 
   if (store.loading) return <div className="center"><p>Loading Family Phases…</p></div>;
 
@@ -46,6 +47,11 @@ export default function Shell({ children }) {
   return (
     <>
       <header className="top">
+        {!needsSetup && (
+          <button className="hamburger" aria-label="Menu" onClick={() => setDrawer(true)}>
+            <Menu size={22} strokeWidth={2.2} />
+          </button>
+        )}
         <div className="brand">
           <img src="/brand/family-phases-mark-on-navy.svg" alt="" />
           <h1>Family Phases</h1>
@@ -58,12 +64,33 @@ export default function Shell({ children }) {
           </nav>
         )}
         {!child && (
-          <button className="bell" title="Notifications" onClick={() => { setShowNotifs(v => !v); if (!showNotifs) markAllRead(); }}>
+          <button className="bell" style={{ marginLeft: 'auto' }} title="Notifications"
+            onClick={() => { setShowNotifs(v => !v); if (!showNotifs) markAllRead(); }}>
             <Bell size={18} strokeWidth={2} />{unread > 0 && <span className="n">{unread}</span>}
           </button>
         )}
-        <button className="btn small subtle" onClick={signOut}>Sign out</button>
+        <button className="btn small subtle signout-desktop" onClick={signOut}>Sign out</button>
       </header>
+
+      {drawer && (
+        <>
+          <div className="drawer-overlay" onClick={() => setDrawer(false)} />
+          <div className="drawer">
+            <div className="drawer-head">
+              <img src="/brand/family-phases-mark-on-navy.svg" alt="" style={{ height: 24 }} />
+              <button aria-label="Close menu" onClick={() => setDrawer(false)}><X size={20} /></button>
+            </div>
+            {nav.map(([href, label]) => (
+              <Link key={href} href={href} className={path.startsWith(href) ? 'active' : ''}
+                onClick={() => setDrawer(false)}>{label}</Link>
+            ))}
+            <button className="drawer-signout" onClick={signOut}>
+              <LogOut size={16} /> Sign out
+            </button>
+          </div>
+        </>
+      )}
+
       {showNotifs && (
         <div className="notif-pop">
           <div className="notif-head">

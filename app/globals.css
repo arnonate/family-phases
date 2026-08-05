@@ -25,6 +25,14 @@ nav.main a:hover{background:rgba(255,255,255,.08)}
 nav.main a.active{background:var(--mid-navy);color:var(--full-moon)}
 header.top .btn.subtle{background:var(--mid-navy);color:var(--full-moon)}
 header.top .bell{color:var(--full-moon)}
+.hamburger{display:none;background:none;border:none;color:var(--full-moon);cursor:pointer;padding:6px;align-items:center}
+.drawer-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:200}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:264px;background:var(--navy);z-index:201;display:flex;flex-direction:column;gap:4px;padding:calc(14px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom))}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.drawer-head button{background:none;border:none;color:var(--moonlight);cursor:pointer;padding:6px;display:flex}
+.drawer a{display:block;padding:12px 14px;border-radius:10px;font-size:15px;font-weight:600;color:var(--moonlight)}
+.drawer a.active{background:var(--mid-navy);color:var(--full-moon)}
+.drawer-signout{margin-top:auto;display:flex;align-items:center;gap:8px;background:var(--mid-navy);color:var(--full-moon);border:none;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer}
 main.wrap{max-width:1100px;margin:0 auto;padding:22px}
 .grid{display:grid;gap:16px}
 .cols-3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
@@ -168,7 +176,7 @@ tr:last-child td{border-bottom:none}
 .notif-head button{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex}
 .notif-head button:hover{color:var(--ink)}
 @media(max-width:640px){.toasts{left:10px;right:10px;max-width:none}}
-.login-box{max-width:400px;margin:12vh auto;padding:0 16px}
+.login-box{max-width:400px;margin:0 auto;padding:16px;min-height:100dvh;display:flex;flex-direction:column;justify-content:center}
 .approval-banner{background:#fef9c3;border:1.5px solid #fde047;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:14px}
 .center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:10px;color:var(--muted)}
 /* ---------- mobile ---------- */
@@ -178,10 +186,10 @@ tr:last-child td{border-bottom:none}
   header.top{padding:calc(8px + env(safe-area-inset-top)) 12px 8px;gap:10px}
   header.top .brand img{height:22px}
   header.top h1{font-size:16px}
-  /* one-row scrollable nav */
-  nav.main{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;order:3;flex-basis:100%}
-  nav.main::-webkit-scrollbar{display:none}
-  nav.main a{padding:8px 12px;white-space:nowrap}
+  /* nav lives in the drawer on mobile */
+  nav.main{display:none}
+  .hamburger{display:inline-flex}
+  .signout-desktop{display:none}
   /* every table scrolls sideways instead of breaking layout */
   .card table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
   /* prevent iOS zoom-on-focus (fires below 16px) */
