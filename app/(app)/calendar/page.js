@@ -1,6 +1,6 @@
 'use client';
 import { useState, Fragment } from 'react';
-import { useStore, sideName, mySide, kidName } from '@/lib/store';
+import { useStore, sideName, mySide, kidName, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon, { phaseLabel } from '@/components/Moon';
@@ -22,6 +22,7 @@ export default function CalendarPage() {
   const [devModal, setDevModal] = useState(null);      // {date} | true
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
+  const readOnly = !!childIdentity(arrangements, me.id);
   const active = sel === 'all' ? null : arrangements.find(a => a.id === sel);
   const shown = active ? [active] : arrangements;
 
@@ -108,7 +109,7 @@ export default function CalendarPage() {
             <button className="btn small subtle" onClick={() => shift(-1)}>←</button>
             <button className="btn small subtle" onClick={() => setYm([now.getFullYear(), now.getMonth()])}>Today</button>
             <button className="btn small subtle" onClick={() => shift(1)}>→</button>
-            <button className="btn small" onClick={() => setDevModal({ date: tod })}>+ Propose change</button>
+            {!readOnly && <button className="btn small" onClick={() => setDevModal({ date: tod })}>+ Propose change</button>}
           </div>
         </div>
         <div className="cal-grid">
@@ -172,7 +173,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {dayModal && <DayModal date={dayModal} shown={shown} me={me} store={store}
+      {dayModal && <DayModal date={dayModal} shown={shown} me={me} store={store} readOnly={readOnly}
         onClose={() => setDayModal(null)}
         onPropose={d => { setDayModal(null); setDevModal({ date: d }); }} />}
       {devModal && <DeviationModal init={devModal} arrangements={arrangements}
@@ -182,7 +183,7 @@ export default function CalendarPage() {
   );
 }
 
-function DayModal({ date, shown, me, store, onClose, onPropose }) {
+function DayModal({ date, shown, me, store, readOnly, onClose, onPropose }) {
   const [arrId, setArrId] = useState(shown[0].id);
   const comments = shown
     .flatMap(a => (a.day_comments || [])
@@ -235,6 +236,7 @@ function DayModal({ date, shown, me, store, onClose, onPropose }) {
           ));
         })}
       </div>
+      {!readOnly && <>
       <div style={{ fontWeight: 700, fontSize: 13, margin: '12px 0 6px' }}>Conversation</div>
       <CommentThread
         comments={comments}
@@ -252,9 +254,10 @@ function DayModal({ date, shown, me, store, onClose, onPropose }) {
         })).error}
         onDelete={async c => (await supa().from('day_comments').delete().eq('id', c.id)).error}
       />
+      </>}
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Close</button>
-        <button className="btn" onClick={() => onPropose(date)}>Propose change</button>
+        {!readOnly && <button className="btn" onClick={() => onPropose(date)}>Propose change</button>}
       </div>
     </Modal>
   );

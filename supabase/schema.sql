@@ -457,5 +457,64 @@ end $$;
 create trigger day_comment_notify after insert on day_comments
   for each row execute function public.trg_day_comment_notify();
 
+-- ============ CHILD LOGINS (read-only) ============
+
+alter table children add column user_id uuid references profiles(id);
+alter table invites add column child_id uuid references children on delete cascade;
+alter table invites drop constraint invites_role_check;
+alter table invites add constraint invites_role_check check (role in ('household','coparent','child'));
+
+create or replace function public.is_child_of_arrangement(aid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from children where arrangement_id = aid and user_id = auth.uid());
+$$;
+
+-- Children can READ schedule-related data only. No write policies exist for
+-- them anywhere, and expenses/settlements/comments have no child policies at
+-- all, so those stay invisible.
+create policy "child reads arrangement" on arrangements for select
+  using (public.is_child_of_arrangement(id));
+create policy "child reads children" on children for select
+  using (public.is_child_of_arrangement(arrangement_id));
+create policy "child reads schedule" on schedules for select
+  using (public.is_child_of_arrangement(arrangement_id));
+create policy "child reads accepted deviations" on deviations for select
+  using (public.is_child_of_arrangement(arrangement_id) and status = 'accepted');
+create policy "child reads own todos" on todos for select
+  using (exists (select 1 from children c where c.id = todos.child_id and c.user_id = auth.uid()));
+
+-- Parents may invite a child by email
+drop policy "create invites" on invites;
+create policy "create invites" on invites for insert
+  with check (invited_by = auth.uid() and (
+    (household_id is not null and public.is_household_member(household_id)) or
+    (arrangement_id is not null and public.can_access_arrangement(arrangement_id)) or
+    (child_id is not null and exists
+      (select 1 from children c where c.id = child_id and public.can_access_arrangement(c.arrangement_id)))));
+
+-- Claiming now also links child accounts
+create or replace function public.claim_invites()
+returns int language plpgsql security definer set search_path = public as $$
+declare inv record; n int := 0;
+begin
+  for inv in select * from invites
+             where lower(email) = lower(auth.email()) and not claimed loop
+    if inv.household_id is not null then
+      insert into household_members (household_id, user_id)
+      values (inv.household_id, auth.uid()) on conflict do nothing;
+    end if;
+    if inv.arrangement_id is not null and inv.role <> 'child' then
+      insert into arrangement_members (arrangement_id, user_id, role)
+      values (inv.arrangement_id, auth.uid(), inv.role) on conflict do nothing;
+    end if;
+    if inv.child_id is not null then
+      update children set user_id = auth.uid() where id = inv.child_id;
+    end if;
+    update invites set claimed = true where id = inv.id;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
 -- ============ REALTIME ============
 alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments, day_comments;

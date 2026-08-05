@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useStore, sideName, mySide } from '@/lib/store';
+import { useStore, sideName, mySide, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import {
   todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance,
@@ -8,12 +8,70 @@ import {
 import Moon, { phaseLabel } from '@/components/Moon';
 import { ArrowLeftRight } from 'lucide-react';
 
+function ChildDashboard({ child, tod }) {
+  const { arr, kid } = child;
+  const w = custodyFor(arr.schedule, arr.deviations, tod, kid.id);
+  const nt = nextTransfer(arr.schedule, arr.deviations, [kid], addDays(tod, -1));
+  const myTodos = (arr.todos || []).filter(t => !t.done);
+  return (
+    <>
+      <div className="grid cols-2" style={{ marginBottom: 16 }}>
+        <div className="card">
+          <h2>Tonight you&apos;re with</h2>
+          <div className="stat">{w ? sideName(arr, w) : '—'}<small>Hi {kid.name} 👋</small></div>
+        </div>
+        <div className="card">
+          <h2>Next switch</h2>
+          <div className="stat">
+            {nt ? (nt === tod ? 'Today' : fmt(nt)) : '—'}
+            <small>{nt ? (arr.transfer_time || '') : 'No switch in the next 60 days'}</small>
+          </div>
+        </div>
+      </div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h2>Your next 7 days</h2>
+        <div className="week-strip">
+          {[...Array(7)].map((_, i) => {
+            const d = addDays(tod, i);
+            const dw = custodyFor(arr.schedule, arr.deviations, d, kid.id);
+            return (
+              <div key={d} className={`ws-day ${dw ? 'who-' + dw : ''}`}>
+                <b>{pd(d).toLocaleDateString(undefined, { weekday: 'short' })}</b>
+                {pd(d).getDate()}
+                <div style={{ fontWeight: 700, fontSize: 10.5, color: dw === 'h' ? 'var(--me)' : '#b45309' }}>
+                  {dw ? sideName(arr, dw) : ''}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {myTodos.length > 0 && (
+        <div className="card">
+          <h2>Your to-dos</h2>
+          {myTodos.map(t => (
+            <div key={t.id} className="todo">
+              <div style={{ flex: 1 }}>
+                <div className="t-title">{t.title}</div>
+                {t.due && <div className="t-meta">{t.due === tod ? 'Today' : fmt(t.due)}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Dashboard() {
   const store = useStore();
   const { arrangements, me } = store;
   const tod = todayStr();
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
+
+  const child = childIdentity(arrangements, me.id);
+  if (child) return <ChildDashboard child={child} tod={tod} />;
 
   // items needing my decision (I'm a direct party and didn't create them)
   const needsMe = [];

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useStore } from '@/lib/store';
+import { useStore, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import Setup from '@/components/Setup';
 import { Bell, X } from 'lucide-react';
@@ -27,6 +27,8 @@ export default function Shell({ children }) {
 
   const needsSetup = !store.arrangements.length && !store.households.length;
   const unread = store.notifications.filter(n => !n.read).length;
+  const child = store.me && childIdentity(store.arrangements, store.me.id);
+  const nav = child ? NAV.filter(([href]) => href === '/dashboard' || href === '/calendar') : NAV;
 
   async function markAllRead() {
     const ids = store.notifications.filter(n => !n.read).map(n => n.id);
@@ -50,14 +52,16 @@ export default function Shell({ children }) {
         </div>
         {!needsSetup && (
           <nav className="main">
-            {NAV.map(([href, label]) => (
+            {nav.map(([href, label]) => (
               <Link key={href} href={href} className={path.startsWith(href) ? 'active' : ''}>{label}</Link>
             ))}
           </nav>
         )}
-        <button className="bell" title="Notifications" onClick={() => { setShowNotifs(v => !v); if (!showNotifs) markAllRead(); }}>
-          <Bell size={18} strokeWidth={2} />{unread > 0 && <span className="n">{unread}</span>}
-        </button>
+        {!child && (
+          <button className="bell" title="Notifications" onClick={() => { setShowNotifs(v => !v); if (!showNotifs) markAllRead(); }}>
+            <Bell size={18} strokeWidth={2} />{unread > 0 && <span className="n">{unread}</span>}
+          </button>
+        )}
         <button className="btn small subtle" onClick={signOut}>Sign out</button>
       </header>
       {showNotifs && (

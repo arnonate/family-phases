@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, kidName } from '@/lib/store';
+import { useStore, kidName, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
@@ -17,6 +17,9 @@ export default function TodosPage() {
   const [openThread, setOpenThread] = useState(null); // todo id
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
+  if (childIdentity(arrangements, me.id)) {
+    return <div className="empty">Your to-dos show on your dashboard.</div>;
+  }
   const shown = sel === 'all' ? arrangements : arrangements.filter(a => a.id === sel);
   const todos = shown.flatMap(a => a.todos.map(t => ({ ...t, arr: a })))
     .sort((a, b) => (a.done - b.done) || ((a.due || '9999') < (b.due || '9999') ? -1 : 1));

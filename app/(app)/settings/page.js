@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, sideName, mySide } from '@/lib/store';
+import { useStore, sideName, mySide, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
 import { toast } from '@/components/Toast';
@@ -14,6 +14,9 @@ export default function SettingsPage() {
   const { arrangements, households, me } = store;
   const [sel, setSel] = useArrSelection(arrangements);
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
+  if (childIdentity(arrangements, me.id)) {
+    return <div style={{ maxWidth: 520, margin: '0 auto' }}><MyProfile store={store} /></div>;
+  }
   const arr = arrangements.find(a => a.id === sel) || arrangements[0];
   const house = households.find(h => h.id === arr.household_id) || households[0];
 
@@ -125,6 +128,19 @@ function General({ arr, store }) {
 
 function Children({ arr, store }) {
   const [newName, setNewName] = useState('');
+  const [inviteKid, setInviteKid] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+
+  async function sendChildInvite(k) {
+    if (!inviteEmail.trim()) return;
+    const { error } = await supa().from('invites').insert({
+      email: inviteEmail.trim(), role: 'child', child_id: k.id, invited_by: store.me.id,
+    });
+    if (error) { toast.error(`Invite failed: ${error.message}`); return; }
+    toast.success(`When ${k.name} signs in with that email, they get read-only access.`);
+    setInviteKid(null); setInviteEmail('');
+    store.refresh();
+  }
 
   async function add() {
     if (!newName.trim()) return;
@@ -150,11 +166,25 @@ function Children({ arr, store }) {
     <div className="card" style={{ marginBottom: 16 }}>
       <h2>Children</h2>
       {arr.children.map(k => (
-        <div key={k.id} className="row" style={{ marginBottom: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
-          <input style={{ flex: 3, minWidth: 0 }} defaultValue={k.name} onBlur={e => e.target.value !== k.name && update(k, { name: e.target.value })} />
-          <input type="color" style={{ flex: '0 0 34px', minWidth: 0, padding: 2, height: 34 }} defaultValue={k.color}
-            onBlur={e => e.target.value !== k.color && update(k, { color: e.target.value })} />
-          <button className="btn danger small" style={{ flex: 'none', minWidth: 0 }} onClick={() => remove(k)}>✕</button>
+        <div key={k.id} style={{ marginBottom: 8 }}>
+          <div className="row" style={{ alignItems: 'center', flexWrap: 'nowrap' }}>
+            <input style={{ flex: 3, minWidth: 0 }} defaultValue={k.name} onBlur={e => e.target.value !== k.name && update(k, { name: e.target.value })} />
+            <input type="color" style={{ flex: '0 0 34px', minWidth: 0, padding: 2, height: 34 }} defaultValue={k.color}
+              onBlur={e => e.target.value !== k.color && update(k, { color: e.target.value })} />
+            {k.user_id
+              ? <span className="pill approved" style={{ flex: 'none' }} title="Has a read-only login">login ✓</span>
+              : <button className="btn small subtle" style={{ flex: 'none', minWidth: 0 }} title="Invite a read-only login"
+                  onClick={() => { setInviteKid(inviteKid === k.id ? null : k.id); setInviteEmail(''); }}>Invite</button>}
+            <button className="btn danger small" style={{ flex: 'none', minWidth: 0 }} onClick={() => remove(k)}>✕</button>
+          </div>
+          {inviteKid === k.id && (
+            <div className="row" style={{ alignItems: 'center', marginTop: 6, flexWrap: 'nowrap' }}>
+              <input type="email" style={{ minWidth: 0 }} placeholder={`${k.name}'s email`}
+                value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendChildInvite(k)} />
+              <button className="btn small" style={{ flex: 'none' }} onClick={() => sendChildInvite(k)}>Send</button>
+            </div>
+          )}
         </div>
       ))}
       <div className="row" style={{ alignItems: 'center' }}>
