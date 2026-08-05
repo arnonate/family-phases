@@ -15,10 +15,13 @@ function ChildDashboard({ child, tod }) {
   const myTodos = (arr.todos || []).filter(t => !t.done);
   return (
     <>
+      <h1 style={{ fontSize: 22, margin: '2px 0 14px' }}>
+        Hello, {kid.name} 👋
+      </h1>
       <div className="grid cols-2" style={{ marginBottom: 16 }}>
         <div className="card">
           <h2>Tonight you&apos;re with</h2>
-          <div className="stat">{w ? kidSideName(arr, w) : '—'}<small>Hi {kid.name} 👋</small></div>
+          <div className="stat">{w ? kidSideName(arr, w) : '—'}</div>
         </div>
         <div className="card">
           <h2>Next switch</h2>
