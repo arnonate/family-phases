@@ -27,19 +27,35 @@ export default function TodosPage() {
         {list.length === 0 && <div className="empty">Nothing here yet.</div>}
         {list.map(t => {
           const overdue = !t.done && t.due && t.due < tod;
+          const n = t.comments?.length || 0;
           return (
             <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
               <input type="checkbox" checked={t.done} disabled readOnly />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setOpenThread(t.id)} title="Open conversation">
                 <div className="t-title">{t.title}</div>
                 <div className="t-meta">
                   {t.due && <span className={overdue ? 'overdue' : ''}>{overdue ? 'Overdue · ' : ''}{t.due === tod ? 'Today' : fmt(t.due)}</span>}
                   {t.child_id && <>{t.due ? ' · ' : ''}{kidName(child.arr, t.child_id)}</>}
                 </div>
               </div>
+              <button className={`thread-btn ${n ? 'has' : ''}`} title="Comments" onClick={() => setOpenThread(t.id)}>
+                <MessageCircle size={19} />{n > 0 && <span>{n}</span>}
+              </button>
             </div>
           );
         })}
+        {openThread && (() => {
+          const t = list.find(x => x.id === openThread);
+          if (!t) return null;
+          return (
+            <Modal title={t.title} onClose={() => setOpenThread(null)}>
+              <Thread todo={t} me={me} store={store} />
+              <div className="actions">
+                <button className="btn subtle" onClick={() => setOpenThread(null)}>Close</button>
+              </div>
+            </Modal>
+          );
+        })()}
       </div>
     );
   }

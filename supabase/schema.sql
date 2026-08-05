@@ -499,6 +499,10 @@ create policy "child reads day comments" on day_comments for select
   using (public.is_child_of_arrangement(arrangement_id));
 create policy "child writes day comments" on day_comments for insert
   with check (public.is_child_of_arrangement(arrangement_id) and author = auth.uid());
+create policy "child reads todo comments" on todo_comments for select
+  using (public.is_child_of_arrangement(arrangement_id));
+create policy "child writes todo comments" on todo_comments for insert
+  with check (public.is_child_of_arrangement(arrangement_id) and author = auth.uid());
 
 -- Parents may invite a child by email
 drop policy "create invites" on invites;
