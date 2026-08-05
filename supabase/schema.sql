@@ -332,17 +332,19 @@ create policy "delete own invites" on invites for delete using (invited_by = aut
 
 -- ============ NOTIFICATION TRIGGERS ============
 
--- Notify every other person attached to the arrangement (parties + household viewers).
+-- Notify everyone attached to the arrangement (parties + household viewers).
+-- The actor's own row is created pre-read: it never lights their bell, but it
+-- appears in their daily digest email so the digest is a complete record.
 create or replace function public.notify_arrangement(aid uuid, actor uuid, ntype text, msg text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  insert into notifications (user_id, arrangement_id, type, message)
-  select distinct u, aid, ntype, msg from (
+  insert into notifications (user_id, arrangement_id, type, message, read)
+  select distinct u, aid, ntype, msg, (u = actor) from (
     select user_id as u from arrangement_members where arrangement_id = aid
     union
     select hm.user_id from household_members hm
       join arrangements a on a.household_id = hm.household_id where a.id = aid
-  ) x where u <> actor;
+  ) x;
 end $$;
 
 create or replace function public.trg_expense_notify()
