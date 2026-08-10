@@ -28,8 +28,8 @@ describe('parent experience', () => {
   it('dashboard greets by name and shows custody, balance, and activities', async () => {
     mount(<Dashboard />, makeFixture());
     await waitFor(() => screen.getByText(/Hello, Nate/));
-    // anchor = today, so tonight is an "Us" night
-    expect(screen.getAllByText('Us').length).toBeGreaterThan(0);
+    // anchor = today, so tonight is an "h" night — named after the parent now
+    expect(screen.getAllByText('Nate').length).toBeGreaterThan(0);
     // balance: co-parent paid $100, our share 75%
     expect(screen.getByText('$75.00')).toBeTruthy();
     // week list shows the one-off activity

@@ -15,19 +15,16 @@ export async function GET(request, { params }) {
     .select('id, name').eq('ical_token', params.token).single();
   if (!profile) return new Response('Not found', { status: 404 });
 
-  // arrangements this user can see: direct member, or member of owning household
-  const [{ data: am }, { data: hm }] = await Promise.all([
-    admin.from('arrangement_members').select('arrangement_id').eq('user_id', profile.id),
-    admin.from('household_members').select('household_id').eq('user_id', profile.id),
-  ]);
-  const direct = (am || []).map(x => x.arrangement_id);
-  let viaHouse = [];
+  // arrangements this user can see: member of a household on either side
+  const { data: hm } = await admin.from('household_members')
+    .select('household_id').eq('user_id', profile.id);
+  let ids = [];
   if (hm?.length) {
+    const houses = hm.map(x => x.household_id).join(',');
     const { data } = await admin.from('arrangements').select('id')
-      .in('household_id', hm.map(x => x.household_id));
-    viaHouse = (data || []).map(x => x.id);
+      .or(`h_household_id.in.(${houses}),c_household_id.in.(${houses})`);
+    ids = [...new Set((data || []).map(x => x.id))];
   }
-  let ids = [...new Set([...direct, ...viaHouse])];
   // Optional ?arrangement=<id> narrows the feed. Access is still enforced:
   // the filter can only select from arrangements this token already reaches.
   const wanted = new URL(request.url).searchParams.get('arrangement');
@@ -35,7 +32,9 @@ export async function GET(request, { params }) {
   if (!ids.length) return icsResponse([]);
 
   const { data: arrs } = await admin.from('arrangements')
-    .select('*, children(*), schedules(*), deviations(*), activities(*), arrangement_members(user_id, role, profiles(name))')
+    .select(`*, children(*), schedules(*), deviations(*), activities(*), member_identities(user_id, identity),
+      h_household:households!arrangements_h_household_id_fkey(household_members(user_id, profiles(name))),
+      c_household:households!arrangements_c_household_id_fkey(household_members(user_id, profiles(name)))`)
     .in('id', ids);
 
   const events = [];
@@ -45,8 +44,15 @@ export async function GET(request, { params }) {
     if (!schedule?.anchor_date) continue;
     const deviations = a.deviations || [];
     const children = a.children || [];
-    const hName = (a.arrangement_members || []).find(m => m.role === 'household')?.profiles?.name || a.h_label || 'Household';
-    const cName = (a.arrangement_members || []).find(m => m.role === 'coparent')?.profiles?.name || a.c_label || 'Co-parent';
+    // The side's parent: the member who declared mom/dad, else the first member.
+    const parentName = (side, fallback) => {
+      const members = a[side + '_household']?.household_members || [];
+      const parent = members.find(m => (a.member_identities || [])
+        .some(i => i.user_id === m.user_id && ['mom', 'dad'].includes(i.identity))) || members[0];
+      return parent?.profiles?.name || fallback;
+    };
+    const hName = parentName('h', a.h_label || 'Home');
+    const cName = parentName('c', a.c_label || 'Co-parent');
 
     // group consecutive days by summary into ranges
     let cur = null;

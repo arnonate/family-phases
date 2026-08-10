@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { arrName } from '@/lib/store';
 
 export function Modal({ title, onClose, children }) {
   useEffect(() => {
@@ -41,21 +42,22 @@ export function InfoTip({ title, children }) {
 
 export function StructureHelp() {
   return (
-    <InfoTip title="Households & arrangements">
+    <InfoTip title="Homes & arrangements">
       <p style={{ marginBottom: 10 }}>
-        <b>Household</b> is your home team — you and your partner. Household members
-        can see everything below. The name is just a label; only you two ever see it.
+        <b>Home</b> is your home team — you and, later, a partner you invite. Everyone
+        in a home can see and manage its arrangements. A home can hold several — for
+        example, your kids with your co-parent, and your partner&apos;s kids with theirs.
       </p>
       <p style={{ marginBottom: 10 }}>
-        <b>Arrangement</b> is one co-parenting relationship: a set of kids, their two
-        parents, a custody schedule, and an expense split. A household can hold several —
-        for example, your kids with your co-parent, and your partner&apos;s kids with theirs.
+        <b>Arrangement</b> is one co-parenting relationship: a set of kids connecting
+        two homes, with a custody schedule and an expense split. Your co-parent gets a
+        home of their own when they join, and can bring a partner into it one day too.
+        Each side only ever sees its own arrangements.
       </p>
       <p>
-        The <b>arrangement name</b> appears on tabs and cards so everyone can tell them
-        apart — something like &ldquo;Nate&apos;s kids&rdquo; works well. Your co-parent
-        sees it too, so keep it friendly. They only ever see their own arrangement,
-        never the other one.
+        Arrangements are shown by the kids&apos; names, which reads right to everyone.
+        Prefer something else? Set a personal nickname in Settings — it&apos;s only
+        visible to you.
       </p>
     </InfoTip>
   );
@@ -95,7 +97,7 @@ export function ArrTabs({ arrangements, value, onChange, allLabel }) {
         <button className={value === 'all' ? 'active' : ''} onClick={() => onChange('all')}>{allLabel}</button>
       )}
       {arrangements.map(a => (
-        <button key={a.id} className={value === a.id ? 'active' : ''} onClick={() => onChange(a.id)}>{a.name}</button>
+        <button key={a.id} className={value === a.id ? 'active' : ''} onClick={() => onChange(a.id)}>{arrName(a)}</button>
       ))}
     </div>
   );

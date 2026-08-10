@@ -8,7 +8,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:rls": "node tests/rls/rls-test.mjs"
+    "test:rls": "node --experimental-websocket tests/rls/rls-test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.454.0",

@@ -27,6 +27,8 @@ export async function POST(request) {
 
   const intro = role === 'child'
     ? `${inviter} set up Family Phases for your family — you can see whose house you're at, your schedule, and your to-dos.`
+    : role === 'viewer'
+    ? `${inviter} invited you to follow along on Family Phases — you'll see the kids' schedule, expenses, and reminders (read-only).`
     : `${inviter} invited you to Family Phases, where your family coordinates the kids' schedule, expenses, and reminders in one place.`;
 
   const res = await fetch('https://api.resend.com/emails', {

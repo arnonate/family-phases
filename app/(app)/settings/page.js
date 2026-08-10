@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, sideName, mySide, childIdentity, kidName } from '@/lib/store';
+import { useStore, sideName, mySide, childIdentity, kidName, identityOf, identityLabel, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { ArrTabs, useArrSelection, StructureHelp, UnitInput, KidChecks } from '@/components/ui';
 import { fmt } from '@/lib/custody';
@@ -9,6 +9,11 @@ import { confirmDelete } from '@/components/Confirm';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
 
 const KIDCOLORS = ['#2563eb', '#16a34a', '#9333ea', '#e11d48', '#0891b2', '#ca8a04'];
+
+const IDENTITIES = [
+  ['mom', 'Mom'], ['dad', 'Dad'], ['stepmom', 'Stepmom'], ['stepdad', 'Stepdad'],
+  ['grandparent', 'Grandparent'], ['other', 'Other'],
+];
 
 export default function SettingsPage() {
   const store = useStore();
@@ -19,7 +24,22 @@ export default function SettingsPage() {
     return <div style={{ maxWidth: 520, margin: '0 auto' }}><MyProfile store={store} /></div>;
   }
   const arr = arrangements.find(a => a.id === sel) || arrangements[0];
-  const house = households.find(h => h.id === arr.household_id) || households[0];
+  const side = mySide(arr, me.id);   // 'h' | 'c' | null (viewer)
+  const myHouse = households.find(h =>
+    (h.household_members || []).some(m => m.user_id === me.id));
+
+  if (!side) {
+    // Read-only viewer: their profile and how the kids know them.
+    return (
+      <>
+        <ArrTabs arrangements={arrangements} value={sel} onChange={setSel} />
+        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+          <MyProfile store={store} />
+          <IdentityCard key={'i' + arr.id} arr={arr} me={me} store={store} />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -27,16 +47,17 @@ export default function SettingsPage() {
       <div className="grid cols-2">
         <div>
           <MyProfile store={store} />
-          <General key={'g' + arr.id} arr={arr} store={store} />
-          <Children key={'k' + arr.id} arr={arr} store={store} />
+          <IdentityCard key={'i' + arr.id} arr={arr} me={me} store={store} />
+          {side === 'h' && <General key={'g' + arr.id} arr={arr} store={store} />}
+          {side === 'h' && <Children key={'k' + arr.id} arr={arr} store={store} />}
         </div>
         <div>
-          <Schedule key={'s' + arr.id} arr={arr} store={store} />
-          <Activities key={'a' + arr.id} arr={arr} me={me} store={store} />
-          <People key={'p' + arr.id} arr={arr} house={house} me={me} store={store} />
+          {side === 'h' && <Schedule key={'s' + arr.id} arr={arr} store={store} />}
+          {side === 'h' && <Activities key={'a' + arr.id} arr={arr} me={me} store={store} />}
+          <People key={'p' + arr.id} arr={arr} side={side} myHouse={myHouse} me={me} store={store} />
         </div>
       </div>
-      <HouseholdTools house={house} me={me} store={store} arr={arr} />
+      <HouseholdTools myHouse={myHouse} side={side} me={me} store={store} />
     </>
   );
 }
@@ -74,21 +95,66 @@ function MyProfile({ store }) {
   );
 }
 
+// Who am I to these kids, and what do I personally call this arrangement.
+// Both are per-person: nobody else's labels move when these change.
+function IdentityCard({ arr, me, store }) {
+  const mine = identityOf(arr, me.id);
+  const [identity, setIdentity] = useState(mine?.identity || 'other');
+  const [label, setLabel] = useState(mine?.label || '');
+  const [nickname, setNickname] = useState((arr.arrangement_prefs || [])[0]?.nickname || '');
+  const [busy, setBusy] = useState(false);
+
+  const dirty = identity !== (mine?.identity || 'other')
+    || label.trim() !== (mine?.label || '')
+    || nickname.trim() !== ((arr.arrangement_prefs || [])[0]?.nickname || '');
+
+  async function save() {
+    setBusy(true);
+    const s = supa();
+    const { error: e1 } = await s.from('member_identities').upsert({
+      arrangement_id: arr.id, user_id: me.id, identity,
+      label: label.trim() || null,
+    });
+    if (e1) toast.error(`Couldn't save: ${e1.message}`);
+    const { error: e2 } = await s.from('arrangement_prefs').upsert({
+      arrangement_id: arr.id, user_id: me.id, nickname: nickname.trim() || null,
+    });
+    if (e2) toast.error(`Couldn't save nickname: ${e2.message}`);
+    await store.refresh();
+    setBusy(false);
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <h2>Me &amp; {arrName(arr)}</h2>
+      <div className="row">
+        <div className="field"><label>The kids know me as</label>
+          <select value={identity} onChange={e => setIdentity(e.target.value)}>
+            {IDENTITIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select></div>
+        <div className="field"><label>Custom label (optional)</label>
+          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Grandma Jo" /></div>
+      </div>
+      <div className="field"><label>My nickname for this arrangement (only you see it)</label>
+        <input value={nickname} onChange={e => setNickname(e.target.value)}
+          placeholder={`Shown as “${arrName(arr)}” by default`} /></div>
+      <button className="btn" disabled={busy || !dirty} onClick={save}>
+        {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
+      </button>
+    </div>
+  );
+}
+
 function General({ arr, store }) {
-  const [name, setName] = useState(arr.name);
-  const [hLabel, setHLabel] = useState(arr.h_label || '');
+  const cJoined = (arr.members || []).some(m => m.side === 'c');
   const [cLabel, setCLabel] = useState(arr.c_label || '');
-  const [kidH, setKidH] = useState(arr.kid_h_label || '');
   const [kidC, setKidC] = useState(arr.kid_c_label || '');
   const [split, setSplit] = useState(arr.split_pct);
   const [threshold, setThreshold] = useState(Number(arr.approval_threshold));
   const [time, setTime] = useState(arr.transfer_time || '');
   const [busy, setBusy] = useState(false);
 
-  const dirty = name !== arr.name
-    || hLabel !== (arr.h_label || '')
-    || cLabel !== (arr.c_label || '')
-    || kidH !== (arr.kid_h_label || '')
+  const dirty = cLabel !== (arr.c_label || '')
     || kidC !== (arr.kid_c_label || '')
     || +split !== arr.split_pct
     || +threshold !== Number(arr.approval_threshold)
@@ -97,8 +163,8 @@ function General({ arr, store }) {
   async function save() {
     setBusy(true);
     const { error } = await supa().from('arrangements').update({
-      name, h_label: hLabel || null, c_label: cLabel || null,
-      kid_h_label: kidH.trim() || null, kid_c_label: kidC.trim() || null,
+      c_label: cLabel.trim() || null,
+      kid_c_label: kidC.trim() || null,
       split_pct: Math.min(100, Math.max(0, +split || 0)),
       approval_threshold: Math.max(0, +threshold || 0),
       transfer_time: time || null,
@@ -110,22 +176,17 @@ function General({ arr, store }) {
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <h2>Arrangement</h2>
-      <div className="field"><label>Name<StructureHelp /></label><input value={name} onChange={e => setName(e.target.value)} /></div>
+      <h2>Arrangement<StructureHelp /></h2>
+      {!cJoined && (
+        <div className="row">
+          <div className="field"><label>Co-parent&apos;s name (until they join)</label>
+            <input value={cLabel} onChange={e => setCLabel(e.target.value)} placeholder="Their name" /></div>
+          <div className="field"><label>Kids see them as (until they join)</label>
+            <input value={kidC} onChange={e => setKidC(e.target.value)} placeholder="e.g. Mom" /></div>
+        </div>
+      )}
       <div className="row">
-        <div className="field"><label>Household label</label>
-          <input value={hLabel} onChange={e => setHLabel(e.target.value)} placeholder="used until they sign up" /></div>
-        <div className="field"><label>Co-parent label</label>
-          <input value={cLabel} onChange={e => setCLabel(e.target.value)} placeholder="used until they sign up" /></div>
-      </div>
-      <div className="row">
-        <div className="field"><label>Kids see household side as</label>
-          <input value={kidH} onChange={e => setKidH(e.target.value)} placeholder="e.g. Dad" /></div>
-        <div className="field"><label>Kids see co-parent as</label>
-          <input value={kidC} onChange={e => setKidC(e.target.value)} placeholder="e.g. Mom" /></div>
-      </div>
-      <div className="row">
-        <div className="field"><label>{mySide(arr, store.me.id) === 'h' ? 'My share' : `${sideName(arr, 'h')}'s share`}</label>
+        <div className="field"><label>My share</label>
           <UnitInput unit="%" type="number" min="0" max="100" value={split} onChange={e => setSplit(e.target.value)} /></div>
         <div className="field"><label>Approval needed above</label>
           <UnitInput unit="USD" type="number" min="0" value={threshold} onChange={e => setThreshold(e.target.value)} /></div>
@@ -375,38 +436,69 @@ function Activities({ arr, me, store }) {
   );
 }
 
-function People({ arr, house, me, store }) {
+function People({ arr, side, myHouse, me, store }) {
   const [cpEmail, setCpEmail] = useState('');
   const [partnerEmail, setPartnerEmail] = useState('');
+  const [viewerEmail, setViewerEmail] = useState('');
 
-  const hasCoparent = (arr.arrangement_members || []).some(m => m.role === 'coparent');
-  const houseMembers = house?.household_members || [];
+  const cJoined = (arr.members || []).some(m => m.side === 'c');
+  const personLine = m => {
+    const nm = m.profiles?.name || m.profiles?.email;
+    const ident = identityLabel(identityOf(arr, m.user_id));
+    return ident ? `${nm} (${ident})` : nm;
+  };
+  const sideMembers = s => (arr.members || []).filter(m => m.side === s);
 
   async function invite(kind) {
-    const email = kind === 'coparent' ? cpEmail : partnerEmail;
+    const email = { coparent: cpEmail, partner: partnerEmail, viewer: viewerEmail }[kind];
     if (!email.trim()) return;
-    const row = kind === 'coparent'
-      ? { email: email.trim(), arrangement_id: arr.id, role: 'coparent', invited_by: me.id }
-      : { email: email.trim(), household_id: house.id, role: 'household', invited_by: me.id };
+    const row = {
+      coparent: { email: email.trim(), arrangement_id: arr.id, role: 'coparent', invited_by: me.id },
+      partner: { email: email.trim(), household_id: myHouse?.id, role: 'household', invited_by: me.id },
+      viewer: { email: email.trim(), arrangement_id: arr.id, role: 'viewer', invited_by: me.id },
+    }[kind];
     const { error } = await supa().from('invites').insert(row);
     if (error) { toast.error(`Invite failed: ${error.message}`); return; }
     const emailed = await sendInviteEmail(email.trim(), kind);
     toast.success(emailed
       ? `Invitation emailed to ${email.trim()} — they sign in with that address and connect automatically.`
       : `Invite saved for ${email.trim()} — send them the app link; they sign in with that address and connect automatically.`);
-    setCpEmail(''); setPartnerEmail('');
+    setCpEmail(''); setPartnerEmail(''); setViewerEmail('');
+    store.refresh();
+  }
+
+  async function removeViewer(v) {
+    const nm = v.profiles?.name || v.profiles?.email;
+    if (!(await confirmDelete(`Remove ${nm}'s read-only access to this arrangement?`))) return;
+    const { error } = await supa().from('arrangement_viewers')
+      .delete().eq('arrangement_id', arr.id).eq('user_id', v.user_id);
+    if (error) toast.error(`Couldn't remove: ${error.message}`);
     store.refresh();
   }
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <h2>People &amp; invites</h2>
-      <p style={{ fontSize: 13.5, marginBottom: 10 }}>
-        <b>{arr.name}:</b>{' '}
-        {(arr.arrangement_members || []).map(m => m.profiles?.name || m.profiles?.email).join(', ') || '—'}
-        {!hasCoparent && <span className="muted"> · co-parent not joined yet</span>}
+      <p style={{ fontSize: 13.5, marginBottom: 4 }}>
+        <b>{sideName(arr, 'h')}&apos;s home:</b> {sideMembers('h').map(personLine).join(', ') || '—'}
       </p>
-      {!hasCoparent && (
+      <p style={{ fontSize: 13.5, marginBottom: 10 }}>
+        <b>{cJoined ? `${sideName(arr, 'c')}'s home:` : 'Co-parent:'}</b>{' '}
+        {sideMembers('c').map(personLine).join(', ') || <span className="muted">not joined yet</span>}
+      </p>
+      {(arr.arrangement_viewers || []).length > 0 && (
+        <p style={{ fontSize: 13.5, marginBottom: 10 }}>
+          <b>Read-only:</b>{' '}
+          {arr.arrangement_viewers.map(v => (
+            <span key={v.user_id} style={{ marginRight: 8 }}>
+              {v.profiles?.name || v.profiles?.email}
+              <button className="btn danger small" style={{ marginLeft: 4, padding: '1px 6px' }}
+                onClick={() => removeViewer(v)}>✕</button>
+            </span>
+          ))}
+        </p>
+      )}
+      {side === 'h' && !cJoined && (
         <div className="field"><label>Invite co-parent ({sideName(arr, 'c')}) by email</label>
           <div className="row" style={{ alignItems: 'center' }}>
             <input type="email" value={cpEmail} onChange={e => setCpEmail(e.target.value)} placeholder="coparent@example.com" />
@@ -414,31 +506,33 @@ function People({ arr, house, me, store }) {
           </div>
         </div>
       )}
-      <p style={{ fontSize: 13.5, margin: '10px 0' }}>
-        <b>Household:</b> {houseMembers.map(m => m.profiles?.name || m.profiles?.email).join(', ') || '—'}
-      </p>
-      <div className="field"><label>Invite your partner to the household (full visibility)</label>
+      {myHouse && (
+        <div className="field"><label>Invite a partner into your home (they manage everything with you)</label>
+          <div className="row" style={{ alignItems: 'center' }}>
+            <input type="email" value={partnerEmail} onChange={e => setPartnerEmail(e.target.value)} placeholder="partner@example.com" />
+            <button className="btn small subtle" style={{ flex: 0 }} onClick={() => invite('partner')}>Invite</button>
+          </div>
+        </div>
+      )}
+      <div className="field"><label>Invite a read-only viewer (sees everything, changes nothing)</label>
         <div className="row" style={{ alignItems: 'center' }}>
-          <input type="email" value={partnerEmail} onChange={e => setPartnerEmail(e.target.value)} placeholder="partner@example.com" />
-          <button className="btn small subtle" style={{ flex: 0 }} onClick={() => invite('partner')}>Invite</button>
+          <input type="email" value={viewerEmail} onChange={e => setViewerEmail(e.target.value)} placeholder="viewer@example.com" />
+          <button className="btn small subtle" style={{ flex: 0 }} onClick={() => invite('viewer')}>Invite</button>
         </div>
       </div>
     </div>
   );
 }
 
-function HouseholdTools({ house, me, store, arr }) {
+function HouseholdTools({ myHouse, side, me, store }) {
   const [showNewArr, setShowNewArr] = useState(false);
-  const [arrName, setArrName] = useState('');
+  const [arrName_, setArrName_] = useState('');
   const [split, setSplit] = useState(50);
   const icalBase = typeof window !== 'undefined' && store.me
     ? `${window.location.origin}/api/ical/${store.me.ical_token}` : '';
-  const isHouseholdMember = !!house;
-  // Household members can subscribe to everything or per arrangement;
-  // co-parents' tokens only ever reach their own arrangement.
-  const feeds = isHouseholdMember && store.arrangements.length > 1
+  const feeds = store.arrangements.length > 1
     ? [{ label: 'Everything (all arrangements)', url: icalBase },
-       ...store.arrangements.map(a => ({ label: a.name, url: `${icalBase}?arrangement=${a.id}` }))]
+       ...store.arrangements.map(a => ({ label: arrName(a), url: `${icalBase}?arrangement=${a.id}` }))]
     : [{ label: 'Custody calendar', url: icalBase }];
 
   function copyFeed(f) {
@@ -447,28 +541,24 @@ function HouseholdTools({ house, me, store, arr }) {
   }
 
   async function createArrangement() {
-    if (!arrName.trim()) return;
+    if (!arrName_.trim()) return;
     const s = supa();
     // Client-generated id: asking for the row back (RETURNING) trips the read
     // policy, which can't see a row mid-insert. Same pattern as initial setup.
     const arrId = crypto.randomUUID();
     const { error } = await s.from('arrangements').insert({
-      id: arrId, household_id: house.id, name: arrName.trim(), split_pct: split, approval_threshold: 500,
-      h_label: 'Us', c_label: 'Them',
+      id: arrId, h_household_id: myHouse.id, name: arrName_.trim(), split_pct: split, approval_threshold: 500,
     });
     if (error) { toast.error(`Couldn't create arrangement: ${error.message}`); return; }
-    const { error: e2 } = await s.from('arrangement_members')
-      .insert({ arrangement_id: arrId, user_id: me.id, role: 'household' });
-    if (e2) { toast.error(e2.message); return; }
     await s.from('schedules').insert({ arrangement_id: arrId, type: 'weeks' });
-    toast.success(`Arrangement "${arrName.trim()}" created`);
-    setShowNewArr(false); setArrName('');
+    toast.success(`Arrangement "${arrName_.trim()}" created`);
+    setShowNewArr(false); setArrName_('');
     store.refresh();
   }
 
   return (
     <div className="card" style={{ marginTop: 4 }}>
-      <h2>Household tools</h2>
+      <h2>Home tools</h2>
       <div className="row" style={{ alignItems: 'flex-start', gap: 36 }}>
         <div style={{ minWidth: 260 }}>
           <label>Calendar feeds (iCal)</label>
@@ -482,7 +572,7 @@ function HouseholdTools({ house, me, store, arr }) {
             </div>
           ))}
         </div>
-        {isHouseholdMember && <div style={{ minWidth: 260 }}>
+        {myHouse && side === 'h' && <div style={{ minWidth: 260 }}>
           <label>Add another arrangement</label>
           <p className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
             e.g. your partner&apos;s kids with their co-parent (their own schedule and split).
@@ -490,8 +580,8 @@ function HouseholdTools({ house, me, store, arr }) {
           {showNewArr ? (
             <>
               <div className="row" style={{ alignItems: 'center' }}>
-                <input placeholder="Arrangement name" value={arrName} onChange={e => setArrName(e.target.value)} />
-                <UnitInput unit="%" type="number" title="household-side share" wrapStyle={{ flex: '0 0 90px' }} value={split} onChange={e => setSplit(+e.target.value)} />
+                <input placeholder="Kids' names, e.g. Ava & Sam" value={arrName_} onChange={e => setArrName_(e.target.value)} />
+                <UnitInput unit="%" type="number" title="your side's share" wrapStyle={{ flex: '0 0 90px' }} value={split} onChange={e => setSplit(+e.target.value)} />
               </div>
               <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
                 <button className="btn small" onClick={createArrangement}>Create</button>

@@ -566,3 +566,298 @@ create policy "child reads activities" on activities for select
 
 -- ============ REALTIME ============
 alter publication supabase_realtime add table deviations, expenses, settlements, todos, notifications, children, schedules, todo_comments, day_comments, activities;
+
+-- ============ HOMES MODEL ============
+-- A household is a home; an arrangement connects two homes around a set of
+-- kids. The founding side keeps its household (h); the co-parent side gets a
+-- household of its own when they join, so either parent can later bring a
+-- partner into their home with full manage rights on that arrangement.
+-- Run this whole section once on an existing database.
+
+alter table arrangements rename column household_id to h_household_id;
+alter table arrangements rename constraint arrangements_household_id_fkey to arrangements_h_household_id_fkey;
+-- If the c-side home is ever deleted, the arrangement survives and that side
+-- simply reverts to "not joined" (the h side owns the row and cascades).
+alter table arrangements add column c_household_id uuid references households on delete set null;
+
+-- Who am I to these kids? Self-declared, per arrangement. Purely display —
+-- permissions come from household membership, so "grandparent" works for a
+-- manager and a read-only viewer alike.
+create table member_identities (
+  arrangement_id uuid references arrangements on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  identity text not null check (identity in ('mom','dad','stepmom','stepdad','grandparent','other')),
+  label text,   -- freeform override, e.g. "Grandma Jo"; null = capitalized identity
+  primary key (arrangement_id, user_id)
+);
+
+-- Optional personal nickname for an arrangement (each viewer sees their own).
+create table arrangement_prefs (
+  arrangement_id uuid references arrangements on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  nickname text,
+  primary key (arrangement_id, user_id)
+);
+
+-- Read-only adults (they see everything, including money; children don't).
+create table arrangement_viewers (
+  arrangement_id uuid references arrangements on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  primary key (arrangement_id, user_id)
+);
+
+alter table member_identities enable row level security;
+alter table arrangement_prefs enable row level security;
+alter table arrangement_viewers enable row level security;
+
+-- ---- access helpers, homes edition ----
+
+-- Which side of the arrangement am I on, via household membership?
+create or replace function public.arrangement_side(aid uuid)
+returns text language sql security definer stable set search_path = public as $$
+  select case
+    when exists (select 1 from arrangements a join household_members hm on hm.household_id = a.h_household_id
+                 where a.id = aid and hm.user_id = auth.uid()) then 'h'
+    when exists (select 1 from arrangements a join household_members hm on hm.household_id = a.c_household_id
+                 where a.id = aid and hm.user_id = auth.uid()) then 'c'
+  end;
+$$;
+
+-- A direct party: member of either side's household. Full manage + decide.
+create or replace function public.is_arrangement_member(aid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select public.arrangement_side(aid) is not null;
+$$;
+
+create or replace function public.is_arrangement_viewer(aid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from arrangement_viewers where arrangement_id = aid and user_id = auth.uid());
+$$;
+
+-- Full visibility (adults): party on either side, or invited viewer.
+create or replace function public.can_access_arrangement(aid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select public.is_arrangement_member(aid) or public.is_arrangement_viewer(aid);
+$$;
+
+-- Anyone attached to an arrangement in any capacity (incl. child logins).
+create or replace function public.attached_to_arrangement(aid uuid, uid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from arrangements a
+                 join household_members hm on hm.household_id in (a.h_household_id, a.c_household_id)
+                 where a.id = aid and hm.user_id = uid)
+      or exists (select 1 from arrangement_viewers v where v.arrangement_id = aid and v.user_id = uid)
+      or exists (select 1 from children c where c.arrangement_id = aid and c.user_id = uid);
+$$;
+
+create or replace function public.shares_context(other uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from household_members h1 join household_members h2 using (household_id)
+                 where h1.user_id = auth.uid() and h2.user_id = other)
+      or exists (select 1 from arrangements a
+                 where public.attached_to_arrangement(a.id, auth.uid())
+                   and public.attached_to_arrangement(a.id, other));
+$$;
+
+-- A household is visible when I'm in it, or it sits on either side of an
+-- arrangement I can see (adults and child logins both need the other side's
+-- names).
+create or replace function public.household_in_view(hid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select public.is_household_member(hid)
+      or exists (select 1 from arrangements a
+                 where (a.h_household_id = hid or a.c_household_id = hid)
+                   and (public.can_access_arrangement(a.id) or public.is_child_of_arrangement(a.id)));
+$$;
+
+create policy "read side households" on households for select
+  using (public.household_in_view(id));
+create policy "read side household members" on household_members for select
+  using (public.household_in_view(household_id));
+
+-- ---- backfill: coparents become one-person households on the c side ----
+
+do $$
+declare u record; hid uuid;
+begin
+  for u in select distinct am.user_id from arrangement_members am where am.role = 'coparent' loop
+    hid := gen_random_uuid();
+    insert into households (id, name, created_by)
+      select hid, coalesce(p.name, split_part(p.email,'@',1)), u.user_id from profiles p where p.id = u.user_id;
+    insert into household_members (household_id, user_id) values (hid, u.user_id);
+    update arrangements a set c_household_id = hid
+      where a.c_household_id is null
+        and exists (select 1 from arrangement_members am
+                    where am.arrangement_id = a.id and am.user_id = u.user_id and am.role = 'coparent');
+  end loop;
+
+  -- Seed identities where they're unambiguous: the coparent inherits the
+  -- kid-facing label, and so does the h-side parent when the household has
+  -- exactly one member.
+  insert into member_identities (arrangement_id, user_id, identity, label)
+  select am.arrangement_id, am.user_id,
+         case lower(coalesce(a.kid_c_label,'')) when 'mom' then 'mom' when 'dad' then 'dad' else 'other' end,
+         case when lower(coalesce(a.kid_c_label,'')) in ('mom','dad') then null else a.kid_c_label end
+  from arrangement_members am join arrangements a on a.id = am.arrangement_id
+  where am.role = 'coparent' and a.kid_c_label is not null
+  on conflict do nothing;
+
+  -- The h-side parent is the member who held the 'household' role on the
+  -- arrangement itself (its founder), not just anyone in the household.
+  insert into member_identities (arrangement_id, user_id, identity, label)
+  select am.arrangement_id, am.user_id,
+         case lower(coalesce(a.kid_h_label,'')) when 'mom' then 'mom' when 'dad' then 'dad' else 'other' end,
+         case when lower(coalesce(a.kid_h_label,'')) in ('mom','dad') then null else a.kid_h_label end
+  from arrangement_members am join arrangements a on a.id = am.arrangement_id
+  where am.role = 'household' and a.kid_h_label is not null
+  on conflict do nothing;
+end $$;
+
+-- Memberships are now derived from households; the table and its policies go.
+drop policy "read arr members" on arrangement_members;
+drop policy "household adds self to own arrangement" on arrangement_members;
+drop table arrangement_members;
+
+-- ---- policy surgery: viewers read, parties write ----
+
+drop policy "children rw" on children;
+create policy "children read" on children for select using (public.can_access_arrangement(arrangement_id));
+create policy "children write" on children for insert with check (public.is_arrangement_member(arrangement_id));
+create policy "children update" on children for update using (public.is_arrangement_member(arrangement_id));
+create policy "children delete" on children for delete using (public.is_arrangement_member(arrangement_id));
+
+drop policy "schedules rw" on schedules;
+create policy "schedules read" on schedules for select using (public.can_access_arrangement(arrangement_id));
+create policy "schedules write" on schedules for insert with check (public.is_arrangement_member(arrangement_id));
+create policy "schedules update" on schedules for update using (public.is_arrangement_member(arrangement_id));
+create policy "schedules delete" on schedules for delete using (public.is_arrangement_member(arrangement_id));
+
+drop policy "settlements rw" on settlements;
+create policy "settlements read" on settlements for select using (public.can_access_arrangement(arrangement_id));
+create policy "settlements write" on settlements for insert
+  with check (public.is_arrangement_member(arrangement_id) and created_by = auth.uid());
+create policy "settlements delete" on settlements for delete
+  using (public.is_arrangement_member(arrangement_id) and created_by = auth.uid());
+
+drop policy "todos rw" on todos;
+create policy "todos read" on todos for select using (public.can_access_arrangement(arrangement_id));
+create policy "todos write" on todos for insert with check (public.is_arrangement_member(arrangement_id));
+create policy "todos update" on todos for update using (public.is_arrangement_member(arrangement_id));
+create policy "todos delete" on todos for delete using (public.is_arrangement_member(arrangement_id));
+
+drop policy "activities rw" on activities;
+create policy "activities read" on activities for select using (public.can_access_arrangement(arrangement_id));
+create policy "activities write" on activities for insert with check (public.is_arrangement_member(arrangement_id));
+create policy "activities update" on activities for update using (public.is_arrangement_member(arrangement_id));
+create policy "activities delete" on activities for delete using (public.is_arrangement_member(arrangement_id));
+
+drop policy "activity write" on activity_log;
+create policy "activity write" on activity_log for insert
+  with check (public.is_arrangement_member(arrangement_id) and user_id = auth.uid());
+
+drop policy "expenses insert" on expenses;
+create policy "expenses insert" on expenses for insert
+  with check (public.is_arrangement_member(arrangement_id) and created_by = auth.uid());
+drop policy "deviations insert" on deviations;
+create policy "deviations insert" on deviations for insert
+  with check (public.is_arrangement_member(arrangement_id) and proposed_by = auth.uid());
+
+drop policy "comments write" on todo_comments;
+create policy "comments write" on todo_comments for insert
+  with check (public.is_arrangement_member(arrangement_id) and author = auth.uid());
+drop policy "day comments write" on day_comments;
+create policy "day comments write" on day_comments for insert
+  with check (public.is_arrangement_member(arrangement_id) and author = auth.uid());
+
+drop policy "receipts write" on storage.objects;
+create policy "receipts write" on storage.objects for insert
+  with check (bucket_id = 'receipts' and public.is_arrangement_member(((storage.foldername(name))[1])::uuid));
+drop policy "receipts delete" on storage.objects;
+create policy "receipts delete" on storage.objects for delete
+  using (bucket_id = 'receipts' and public.is_arrangement_member(((storage.foldername(name))[1])::uuid));
+
+-- Identities: everyone attached may read (children need "Mom"/"Dad");
+-- each person writes only their own row.
+create policy "identities read" on member_identities for select
+  using (public.can_access_arrangement(arrangement_id) or public.is_child_of_arrangement(arrangement_id));
+create policy "identities write own" on member_identities for insert
+  with check (user_id = auth.uid() and public.can_access_arrangement(arrangement_id));
+create policy "identities update own" on member_identities for update
+  using (user_id = auth.uid());
+create policy "identities delete own" on member_identities for delete
+  using (user_id = auth.uid());
+
+-- Nicknames are private to their owner.
+create policy "prefs own" on arrangement_prefs for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid() and public.can_access_arrangement(arrangement_id));
+
+create policy "viewers read" on arrangement_viewers for select
+  using (public.can_access_arrangement(arrangement_id));
+create policy "viewers remove" on arrangement_viewers for delete
+  using (public.is_arrangement_member(arrangement_id) or user_id = auth.uid());
+-- inserts happen only via claim_invites (security definer)
+
+-- Invites: add the read-only viewer role; only direct parties may invite
+-- into an arrangement.
+alter table invites drop constraint invites_role_check;
+alter table invites add constraint invites_role_check check (role in ('household','coparent','child','viewer'));
+drop policy "create invites" on invites;
+create policy "create invites" on invites for insert
+  with check (invited_by = auth.uid() and (
+    (household_id is not null and public.is_household_member(household_id)) or
+    (arrangement_id is not null and public.is_arrangement_member(arrangement_id)) or
+    (child_id is not null and exists
+      (select 1 from children c where c.id = child_id and public.is_arrangement_member(c.arrangement_id)))));
+
+-- Claiming: a coparent gets (or joins) the c-side household; viewers get a
+-- viewer row; household/child invites work as before.
+create or replace function public.claim_invites()
+returns int language plpgsql security definer set search_path = public as $$
+declare inv record; n int := 0; hid uuid;
+begin
+  for inv in select * from invites
+             where lower(email) = lower(auth.email()) and not claimed loop
+    if inv.household_id is not null then
+      insert into household_members (household_id, user_id)
+      values (inv.household_id, auth.uid()) on conflict do nothing;
+    end if;
+    if inv.arrangement_id is not null and inv.role = 'coparent' then
+      select c_household_id into hid from arrangements where id = inv.arrangement_id;
+      if hid is null then
+        hid := gen_random_uuid();
+        insert into households (id, name, created_by)
+          select hid, coalesce(p.name, split_part(p.email,'@',1)), auth.uid()
+          from profiles p where p.id = auth.uid();
+        update arrangements set c_household_id = hid where id = inv.arrangement_id;
+      end if;
+      insert into household_members (household_id, user_id)
+      values (hid, auth.uid()) on conflict do nothing;
+    end if;
+    if inv.arrangement_id is not null and inv.role = 'viewer' then
+      insert into arrangement_viewers (arrangement_id, user_id)
+      values (inv.arrangement_id, auth.uid()) on conflict do nothing;
+    end if;
+    if inv.child_id is not null then
+      update children set user_id = auth.uid() where id = inv.child_id;
+      update profiles set name = (select name from children where id = inv.child_id)
+        where id = auth.uid();
+    end if;
+    update invites set claimed = true where id = inv.id;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+-- Notifications now reach both homes (viewers stay quiet).
+create or replace function public.notify_arrangement(aid uuid, actor uuid, ntype text, msg text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  insert into notifications (user_id, arrangement_id, type, message, read)
+  select distinct hm.user_id, aid, ntype, msg, (hm.user_id = actor)
+  from arrangements a
+  join household_members hm on hm.household_id in (a.h_household_id, a.c_household_id)
+  where a.id = aid;
+end $$;
+
+alter publication supabase_realtime add table member_identities, arrangement_viewers, arrangement_prefs;

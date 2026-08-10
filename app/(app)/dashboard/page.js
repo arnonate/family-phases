@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useStore, sideName, kidSideName, mySide, childIdentity, kidName } from '@/lib/store';
+import { useStore, sideName, kidSideName, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import {
   todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance, activityOn,
@@ -30,7 +30,7 @@ function WeekList({ arrangements, tod, nameForSide, actFilter }) {
                   const w = daySummary(a.schedule, a.deviations, a.children, d);
                   return (
                     <span key={a.id} className="wl-arr">
-                      {arrangements.length > 1 && <span className="muted">{a.name} </span>}
+                      {arrangements.length > 1 && <span className="muted">{arrName(a)} </span>}
                       <span className={`pill ${w === 'mix' || !w ? 'cat' : w}`}>
                         {w ? (w === 'mix' ? 'Split' : nameForSide(a, w)) : '—'}
                       </span>
@@ -174,7 +174,7 @@ export default function Dashboard() {
               {n.type === 'expense'
                 ? <>a {money(Number(n.item.amount))} expense</>
                 : <>a schedule change ({fmt(n.item.start_date)})</>}
-              {' '}in <b>{n.a.name}</b> — review it on the{' '}
+              {' '}in <b>{arrName(n.a)}</b> — review it on the{' '}
               <Link href={n.type === 'expense' ? '/expenses' : '/calendar'}>
                 {n.type === 'expense' ? 'Expenses' : 'Calendar'} page</Link>.{' '}
             </span>
@@ -189,7 +189,7 @@ export default function Dashboard() {
         const homeKids = a.children.filter(k => custodyFor(a.schedule, a.deviations, tod, k.id) === 'h');
         return (
           <div key={a.id} style={{ marginBottom: 20 }}>
-            {arrangements.length > 1 && <h2 style={{ fontSize: 16, margin: '4px 0 10px' }}>{a.name}</h2>}
+            {arrangements.length > 1 && <h2 style={{ fontSize: 16, margin: '4px 0 10px' }}>{arrName(a)}</h2>}
             <div className="grid cols-3" style={{ marginBottom: 12 }}>
               <div className="card">
                 <h2>Tonight the kids are with</h2>

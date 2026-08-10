@@ -7,14 +7,20 @@ export function makeFixture({ asChild = false } = {}) {
     ? { id: 'kid-molly', email: 'molly@example.com', name: 'Molly', ical_token: 'tok' }
     : { id: 'nate', email: 'nate@example.com', name: 'Nate', ical_token: 'tok' };
 
+  const nateP = { id: 'nate', name: 'Nate', email: 'nate@example.com' };
+  const chrisP = { id: 'chris', name: 'Christin', email: 'c@example.com' };
   const arrangement = {
-    id: 'arr-sj', household_id: 'house-1', name: 'SJ',
+    id: 'arr-sj', h_household_id: 'house-1', c_household_id: 'house-2', name: 'SJ',
     split_pct: 75, approval_threshold: 500, transfer_time: '6:00 PM',
-    h_label: 'Us', c_label: 'Them', kid_h_label: 'Dad', kid_c_label: 'Mom',
-    arrangement_members: [
-      { user_id: 'nate', role: 'household', profiles: { id: 'nate', name: 'Nate', email: 'nate@example.com' } },
-      { user_id: 'chris', role: 'coparent', profiles: { id: 'chris', name: 'Christin', email: 'c@example.com' } },
+    h_label: null, c_label: null, kid_h_label: null, kid_c_label: null,
+    h_household: { id: 'house-1', name: "Nate's home", household_members: [{ user_id: 'nate', profiles: nateP }] },
+    c_household: { id: 'house-2', name: "Christin's home", household_members: [{ user_id: 'chris', profiles: chrisP }] },
+    member_identities: [
+      { arrangement_id: 'arr-sj', user_id: 'nate', identity: 'dad', label: null },
+      { arrangement_id: 'arr-sj', user_id: 'chris', identity: 'mom', label: null },
     ],
+    arrangement_prefs: [],
+    arrangement_viewers: [],
     children: [
       { id: 'k1', arrangement_id: 'arr-sj', name: 'Molly', color: '#a78bfa', user_id: 'kid-molly' },
       { id: 'k2', arrangement_id: 'arr-sj', name: 'Jude', color: '#f472b6', user_id: null },
@@ -37,7 +43,7 @@ export function makeFixture({ asChild = false } = {}) {
 
   return {
     me,
-    households: [{ id: 'house-1', name: 'Our household', household_members: [{ user_id: 'nate', profiles: { id: 'nate', name: 'Nate', email: 'nate@example.com' } }] }],
+    households: [{ id: 'house-1', name: "Nate's home", household_members: [{ user_id: 'nate', profiles: { id: 'nate', name: 'Nate', email: 'nate@example.com' } }] }],
     arrangements: [arrangement],
     notifications: [],
   };

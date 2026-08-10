@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, sideName, mySide, kidName } from '@/lib/store';
+import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
@@ -137,8 +137,10 @@ export default function ExpensesPage() {
               {months.map(m => <option key={m} value={m}>{new Date(m + '-15').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</option>)}
             </select>
             <button className="btn small subtle" onClick={exportLedger}>Export ledger (CSV)</button>
-            <button className="btn small subtle" onClick={() => setShowSettle(true)}>Record payment</button>
-            <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>
+            {side && <>
+              <button className="btn small subtle" onClick={() => setShowSettle(true)}>Record payment</button>
+              <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>
+            </>}
           </span>
         </h2>
         <div style={{ overflowX: 'auto' }}>
@@ -203,7 +205,7 @@ function AddExpense({ arr, me, store, onClose }) {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const otherPartyJoined = (arr.arrangement_members || []).length > 1;
+  const otherPartyJoined = bothSidesJoined(arr);
   const amt = parseFloat(amount);
   const needsApproval = otherPartyJoined && amt > Number(arr.approval_threshold);
 

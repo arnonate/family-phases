@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, kidName, childIdentity } from '@/lib/store';
+import { useStore, kidName, childIdentity, mySide, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
@@ -17,6 +17,7 @@ export default function TodosPage() {
   const [openThread, setOpenThread] = useState(null); // todo id
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
+  const canEdit = arrangements.some(a => mySide(a, me.id));
   const child = childIdentity(arrangements, me.id);
   if (child) {
     const tod = todayStr();
@@ -75,7 +76,7 @@ export default function TodosPage() {
     store.refresh();
   }
   function assigneeName(t) {
-    const m = (t.arr.arrangement_members || []).find(x => x.user_id === t.assigned_to);
+    const m = (t.arr.members || []).find(x => x.user_id === t.assigned_to);
     return m?.profiles?.name || m?.profiles?.email || null;
   }
 
@@ -83,7 +84,7 @@ export default function TodosPage() {
     <>
       <ArrTabs arrangements={arrangements} value={sel} onChange={setSel} allLabel="All" />
       <div className="card">
-        <h2>To-dos &amp; reminders <button className="btn small" onClick={() => setShowAdd(true)}>+ Add</button></h2>
+        <h2>To-dos &amp; reminders {canEdit && <button className="btn small" onClick={() => setShowAdd(true)}>+ Add</button>}</h2>
         {todos.length === 0 && <div className="empty">Nothing here. Add reminders for forms, payments, gear to pack, pickups…</div>}
         {todos.map(t => {
           const overdue = !t.done && t.due && t.due < tod;
@@ -99,7 +100,7 @@ export default function TodosPage() {
           if (assignee) meta.push(
             <span key="who"><User size={11} style={{ verticalAlign: '-1px' }} /> {assignee}{t.assigned_to === me.id && ' (you)'}</span>
           );
-          if (arrangements.length > 1) meta.push(<span key="arr">{t.arr.name}</span>);
+          if (arrangements.length > 1) meta.push(<span key="arr">{arrName(t.arr)}</span>);
           return (
             <div key={t.id} className={`todo ${t.done ? 'done' : ''}`}>
               <input type="checkbox" checked={t.done} onChange={() => toggle(t)} />
@@ -112,7 +113,7 @@ export default function TodosPage() {
                 onClick={() => setOpenThread(t.id)}>
                 <MessageCircle size={19} />{n > 0 && <span>{n}</span>}
               </button>
-              <button className="btn danger small" onClick={() => remove(t)}>✕</button>
+              {canEdit && <button className="btn danger small" onClick={() => remove(t)}>✕</button>}
             </div>
           );
         })}
@@ -191,7 +192,7 @@ function AddTodo({ arrangements, defaultArr, me, store, onClose }) {
       <div className="field"><label>Assign to (optional)</label>
         <select value={assignee} onChange={e => setAssignee(e.target.value)}>
           <option value="">—</option>
-          {(arr.arrangement_members || []).map(m => (
+          {(arr.members || []).map(m => (
             <option key={m.user_id} value={m.user_id}>
               {m.profiles?.name || m.profiles?.email}{m.user_id === me.id ? ' (you)' : ''}
             </option>

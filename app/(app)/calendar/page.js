@@ -1,6 +1,6 @@
 'use client';
 import { useState, Fragment } from 'react';
-import { useStore, sideName, kidSideName, mySide, kidName, childIdentity } from '@/lib/store';
+import { useStore, sideName, kidSideName, mySide, kidName, childIdentity, bothSidesJoined, isViewer } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon, { phaseLabel } from '@/components/Moon';
@@ -25,8 +25,10 @@ export default function CalendarPage() {
   function switchView(v) { setView(v); try { localStorage.setItem('fp_calview', v); } catch {} }
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
-  const readOnly = !!childIdentity(arrangements, me.id);
-  const nameFor = readOnly ? kidSideName : sideName;
+  const child = !!childIdentity(arrangements, me.id);
+  // Read-only for child logins and for adults with no side anywhere (viewers)
+  const readOnly = child || arrangements.every(a => !mySide(a, me.id));
+  const nameFor = child ? kidSideName : sideName;
   const active = sel === 'all' ? null : arrangements.find(a => a.id === sel);
   const shown = active ? [active] : arrangements;
 
@@ -182,7 +184,7 @@ export default function CalendarPage() {
                         const w = daySummary(a.schedule, a.deviations, a.children, dstr);
                         return (
                           <span key={a.id} className="wl-arr">
-                            {shown.length > 1 && <span className="muted">{a.name} </span>}
+                            {shown.length > 1 && <span className="muted">{arrName(a)} </span>}
                             <span className={`pill ${w === 'mix' || !w ? 'cat' : w}`}>
                               {w ? (w === 'mix' ? 'Split' : nameFor(a, w)) : '—'}
                             </span>
@@ -278,7 +280,7 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
           const sides = ['h', 'c'].filter(s => groups[s].length > 0);
           if (!sides.length) return [...divider, (
             <Fragment key={a.id}>
-              {shown.length > 1 && <b>{a.name}</b>}
+              {shown.length > 1 && <b>{arrName(a)}</b>}
               <span />
               <span className="muted" style={{ fontSize: 12.5 }}>Add children in Settings</span>
             </Fragment>
@@ -329,7 +331,7 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
         controls={shown.length > 1 && (
           <select value={arrId} onChange={e => setArrId(e.target.value)}
             style={{ width: 'auto', flex: 'none', padding: '7px 30px 7px 8px' }}>
-            {shown.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {shown.map(a => <option key={a.id} value={a.id}>{arrName(a)}</option>)}
           </select>
         )}
         onPost={async body => (await supa().from('day_comments').insert({
@@ -355,7 +357,7 @@ function DeviationModal({ init, arrangements, defaultArr, me, store, onClose }) 
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const otherPartyJoined = (arr.arrangement_members || []).length > 1;
+  const otherPartyJoined = bothSidesJoined(arr);
 
   async function submit() {
     if (!start || !end || end < start) { toast.error('Check the dates — the end can’t be before the start.'); return; }
@@ -383,7 +385,7 @@ function DeviationModal({ init, arrangements, defaultArr, me, store, onClose }) 
       {arrangements.length > 1 && (
         <div className="field"><label>Arrangement</label>
           <select value={arrId} onChange={e => { setArrId(e.target.value); setKids([]); }}>
-            {arrangements.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {arrangements.map(a => <option key={a.id} value={a.id}>{arrName(a)}</option>)}
           </select></div>
       )}
       <div className="row">
