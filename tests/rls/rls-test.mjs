@@ -169,6 +169,14 @@ async function main() {
   const { data: cpPrefs } = await coparent.client.from('arrangement_prefs').select('*').eq('arrangement_id', arrId);
   check("one user's nickname is invisible to others", (cpPrefs || []).length === 0);
 
+  // Disconnect: the h side can unlink the c-side home; access ends instantly
+  // for everyone in it (run last — it revokes the c side for good)
+  await parent.client.from('arrangements').update({ c_household_id: null }).eq('id', arrId);
+  const { data: cpAfter } = await coparent.client.from('arrangements').select('id').eq('id', arrId);
+  check('h side can disconnect the co-parent home', (cpAfter || []).length === 0);
+  const { data: cppAfter } = await cpPartner.client.from('arrangements').select('id').eq('id', arrId);
+  check("disconnect also cuts the co-parent's partner", (cppAfter || []).length === 0);
+
   console.log(failures ? `\n${failures} FAILURE(S)` : '\nALL RLS CHECKS PASSED');
 }
 
