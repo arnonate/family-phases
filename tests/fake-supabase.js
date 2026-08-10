@@ -2,7 +2,7 @@
 // pages to run realistically against fixture data.
 import { todayStr } from '@/lib/custody';
 
-export function makeFixture({ asChild = false } = {}) {
+export function makeFixture({ asChild = false, twoArrangements = false } = {}) {
   const me = asChild
     ? { id: 'kid-molly', email: 'molly@example.com', name: 'Molly', ical_token: 'tok' }
     : { id: 'nate', email: 'nate@example.com', name: 'Nate', ical_token: 'tok' };
@@ -41,10 +41,21 @@ export function makeFixture({ asChild = false } = {}) {
     ],
   };
 
+  // A second arrangement in the same home, co-parent not joined yet —
+  // exercises every multi-arrangement code path (tabs, per-arrangement labels).
+  const arrangement2 = {
+    ...arrangement,
+    id: 'arr-kc', name: 'KC', c_household_id: null, c_household: null,
+    c_label: 'Sam', kid_c_label: 'Dad',
+    member_identities: [{ arrangement_id: 'arr-kc', user_id: 'nate', identity: 'dad', label: null }],
+    children: [{ id: 'k3', arrangement_id: 'arr-kc', name: 'Kai', color: '#34d399', user_id: null }],
+    expenses: [], todos: [], activities: [],
+  };
+
   return {
     me,
     households: [{ id: 'house-1', name: "Nate's home", household_members: [{ user_id: 'nate', profiles: { id: 'nate', name: 'Nate', email: 'nate@example.com' } }] }],
-    arrangements: [arrangement],
+    arrangements: twoArrangements ? [arrangement, arrangement2] : [arrangement],
     notifications: [],
   };
 }

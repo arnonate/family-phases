@@ -45,6 +45,23 @@ describe('parent experience', () => {
     expect(screen.getByTitle('Notifications')).toBeTruthy();
   });
 
+  it('calendar renders with multiple arrangements, named after the kids', async () => {
+    mount(<CalendarPage />, makeFixture({ twoArrangements: true }));
+    await waitFor(() => screen.getByText('All kids'));
+    // tabs show derived names
+    expect(screen.getByText('Jude & Molly')).toBeTruthy();
+    expect(screen.getByText('Kai')).toBeTruthy();
+    // list view renders per-arrangement labels (regression: arrName import)
+    fireEvent.click(screen.getByLabelText('List view'));
+    await waitFor(() => screen.getAllByText(/Jude & Molly/));
+  });
+
+  it('dashboard renders with multiple arrangements', async () => {
+    mount(<Dashboard />, makeFixture({ twoArrangements: true }));
+    await waitFor(() => screen.getByText(/Hello, Nate/));
+    expect(screen.getAllByText('Jude & Molly').length).toBeGreaterThan(0);
+  });
+
   it('calendar toggles between grid and list views', async () => {
     mount(<CalendarPage />, makeFixture());
     await waitFor(() => screen.getByLabelText('List view'));

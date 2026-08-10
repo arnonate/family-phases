@@ -1,6 +1,6 @@
 'use client';
 import { useState, Fragment } from 'react';
-import { useStore, sideName, kidSideName, mySide, kidName, childIdentity, bothSidesJoined, isViewer } from '@/lib/store';
+import { useStore, sideName, kidSideName, mySide, kidName, childIdentity, bothSidesJoined, isViewer, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
 import Moon, { phaseLabel } from '@/components/Moon';
