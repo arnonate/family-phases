@@ -249,7 +249,7 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
   const comments = shown
     .flatMap(a => (a.day_comments || [])
       .filter(c => c.date === date)
-      .map(c => ({ ...c, tag: shown.length > 1 ? a.name : null })))
+      .map(c => ({ ...c, tag: shown.length > 1 ? arrName(a) : null })))
     .sort((x, y) => (x.created_at < y.created_at ? -1 : 1));
 
   const allKids = shown.flatMap(a => a.children);
@@ -287,7 +287,7 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
           )];
           return [...divider, ...sides.map((s, i) => (
             <Fragment key={a.id + s}>
-              {shown.length > 1 && <b>{i === 0 ? a.name : ''}</b>}
+              {shown.length > 1 && <b>{i === 0 ? arrName(a) : ''}</b>}
               <span><span className={`pill ${s}`}>{nameFor(a, s)}</span></span>
               <div className="dk-groups">
                 {groups[s].map(k => (

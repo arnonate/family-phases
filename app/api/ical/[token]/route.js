@@ -53,6 +53,8 @@ export async function GET(request, { params }) {
     };
     const hName = parentName('h', a.h_label || 'Home');
     const cName = parentName('c', a.c_label || 'Co-parent');
+    const feedName = children.length
+      ? children.map(k => k.name.split(' ')[0]).join(' & ') : a.name;
 
     // group consecutive days by summary into ranges
     let cur = null;
@@ -62,8 +64,8 @@ export async function GET(request, { params }) {
       if (cur && cur.who !== w) {
         events.push({
           start: cur.from, endExclusive: d,
-          title: cur.who === 'mix' ? `Kids split (${a.name})`
-            : `Kids with ${cur.who === 'h' ? hName : cName}${arrs.length > 1 ? ` (${a.name})` : ''}`,
+          title: cur.who === 'mix' ? `Kids split (${feedName})`
+            : `Kids with ${cur.who === 'h' ? hName : cName}${arrs.length > 1 ? ` (${feedName})` : ''}`,
         });
         cur = null;
       }
@@ -85,7 +87,10 @@ export async function GET(request, { params }) {
       }
     }
   }
-  const calName = arrs?.length === 1 ? `Family Phases — ${arrs[0].name}` : 'Family Phases custody';
+  const calName = arrs?.length === 1
+    ? `Family Phases — ${arrs[0].children?.length
+        ? arrs[0].children.map(k => k.name.split(' ')[0]).join(' & ') : arrs[0].name}`
+    : 'Family Phases custody';
   return icsResponse(events, calName);
 }
 

@@ -177,7 +177,7 @@ function AddTodo({ arrangements, defaultArr, me, store, onClose }) {
       {arrangements.length > 1 && (
         <div className="field"><label>Arrangement</label>
           <select value={arrId} onChange={e => { setArrId(e.target.value); setChildId(''); setAssignee(''); }}>
-            {arrangements.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {arrangements.map(a => <option key={a.id} value={a.id}>{arrName(a)}</option>)}
           </select></div>
       )}
       <div className="row">

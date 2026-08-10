@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer } from '@/lib/store';
+import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
@@ -85,7 +85,7 @@ export default function ExpensesPage() {
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `family-phases-ledger-${arr.name.replaceAll(' ', '-')}-${todayStr()}.csv`;
+    a.download = `family-phases-ledger-${arrName(arr).replaceAll(' ', '-')}-${todayStr()}.csv`;
     a.click();
   }
 
