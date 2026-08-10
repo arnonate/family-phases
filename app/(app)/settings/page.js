@@ -183,15 +183,15 @@ function Children({ arr, store }) {
       <h2>Children</h2>
       {arr.children.map(k => (
         <div key={k.id} style={{ marginBottom: 8 }}>
-          <div className="row" style={{ alignItems: 'center', flexWrap: 'nowrap' }}>
-            <input style={{ flex: 3, minWidth: 0 }} defaultValue={k.name} onBlur={e => e.target.value !== k.name && update(k, { name: e.target.value })} />
-            <input type="color" style={{ flex: '0 0 34px', minWidth: 0, padding: 2, height: 34 }} defaultValue={k.color}
+          <div className="kid-row">
+            <input style={{ minWidth: 0 }} defaultValue={k.name} onBlur={e => e.target.value !== k.name && update(k, { name: e.target.value })} />
+            <input type="color" defaultValue={k.color}
               onBlur={e => e.target.value !== k.color && update(k, { color: e.target.value })} />
             {k.user_id
-              ? <span className="pill approved" style={{ flex: 'none', minWidth: 0 }} title="Has a read-only login">login ✓</span>
-              : <button className="btn small subtle" style={{ flex: 'none', minWidth: 0 }} title="Invite a read-only login"
+              ? <span className="pill approved" title="Has a read-only login">login ✓</span>
+              : <button className="btn small subtle" title="Invite a read-only login"
                   onClick={() => { setInviteKid(inviteKid === k.id ? null : k.id); setInviteEmail(''); }}>Invite</button>}
-            <button className="btn danger small" style={{ flex: 'none', minWidth: 0 }} onClick={() => remove(k)}>✕</button>
+            <button className="btn danger small" onClick={() => remove(k)}>✕</button>
           </div>
           {inviteKid === k.id && (
             <div className="row" style={{ alignItems: 'center', marginTop: 6, flexWrap: 'nowrap' }}>

@@ -122,6 +122,9 @@ tr:last-child td{border-bottom:none}
 .todo .t-title{font-weight:600}
 .todo .t-meta{font-size:12px;color:var(--muted);margin-top:1px}
 .todo .t-meta .overdue{color:var(--red);font-weight:700}
+.kid-row{display:grid;grid-template-columns:1fr 34px 78px 30px;gap:8px;align-items:center}
+.kid-row input[type=color]{width:34px;height:34px;min-width:0;padding:2px}
+.kid-row .pill,.kid-row .btn.subtle{min-width:0;text-align:center;justify-self:stretch}
 .dow-row{display:flex;gap:6px}
 .dow{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
 .dow.on{background:var(--mid-navy);border-color:var(--mid-navy);color:var(--full-moon)}
