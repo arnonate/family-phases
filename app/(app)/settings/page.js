@@ -150,7 +150,10 @@ function Children({ arr, store }) {
       email: inviteEmail.trim(), role: 'child', child_id: k.id, invited_by: store.me.id,
     });
     if (error) { toast.error(`Invite failed: ${error.message}`); return; }
-    toast.success(`When ${k.name} signs in with that email, they get read-only access.`);
+    const emailed = await sendInviteEmail(inviteEmail.trim(), 'child');
+    toast.success(emailed
+      ? `Invitation emailed — when ${k.name} signs in with that address, they get read-only access.`
+      : `When ${k.name} signs in with that email, they get read-only access.`);
     setInviteKid(null); setInviteEmail('');
     store.refresh();
   }
@@ -264,6 +267,21 @@ function Schedule({ arr, store }) {
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
+// Fire the invitation email; returns whether one actually went out.
+async function sendInviteEmail(email, role) {
+  try {
+    const res = await fetch('/api/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role }),
+    });
+    const body = await res.json();
+    return !!body.ok;
+  } catch {
+    return false;
+  }
+}
+
 function Activities({ arr, me, store }) {
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
@@ -372,7 +390,10 @@ function People({ arr, house, me, store }) {
       : { email: email.trim(), household_id: house.id, role: 'household', invited_by: me.id };
     const { error } = await supa().from('invites').insert(row);
     if (error) { toast.error(`Invite failed: ${error.message}`); return; }
-    toast.success(`Invite saved for ${email.trim()} — when they sign in with that email they're connected automatically. Send them the app link!`);
+    const emailed = await sendInviteEmail(email.trim(), kind);
+    toast.success(emailed
+      ? `Invitation emailed to ${email.trim()} — they sign in with that address and connect automatically.`
+      : `Invite saved for ${email.trim()} — send them the app link; they sign in with that address and connect automatically.`);
     setCpEmail(''); setPartnerEmail('');
     store.refresh();
   }
