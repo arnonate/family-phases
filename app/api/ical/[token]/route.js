@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { daySummary, addDays, todayStr, activityOn } from '@/lib/custody';
+import { daySummary, addDays, todayStr, activityOn, listNames } from '@/lib/custody';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,7 @@ export async function GET(request, { params }) {
     const hName = parentName('h', a.h_label || 'Home');
     const cName = parentName('c', a.c_label || 'Co-parent');
     const feedName = children.length
-      ? children.map(k => k.name.split(' ')[0]).join(' & ') : a.name;
+      ? listNames(children.map(k => k.name.split(' ')[0])) : a.name;
 
     // group consecutive days by summary into ranges
     let cur = null;
@@ -89,7 +89,7 @@ export async function GET(request, { params }) {
   }
   const calName = arrs?.length === 1
     ? `Family Phases — ${arrs[0].children?.length
-        ? arrs[0].children.map(k => k.name.split(' ')[0]).join(' & ') : arrs[0].name}`
+        ? listNames(arrs[0].children.map(k => k.name.split(' ')[0])) : arrs[0].name}`
     : 'Family Phases custody';
   return icsResponse(events, calName);
 }

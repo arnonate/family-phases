@@ -87,4 +87,8 @@ describe('arrangement display name', () => {
   it('falls back to the stored name with no children', () => {
     expect(arrName({ ...arr, children: [] })).toBe('SJ');
   });
+  it('reads as prose with three or more kids', () => {
+    const kids = ['Emery', 'Macy', 'Molly', 'Jude'].map((n, i) => ({ id: 'k' + i, name: n }));
+    expect(arrName({ ...arr, children: kids })).toBe('Emery, Macy, Molly & Jude');
+  });
 });

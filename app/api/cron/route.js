@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { daySummary, activityOn } from '@/lib/custody';
+import { daySummary, activityOn, listNames } from '@/lib/custody';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // including ones already read in-app, so the email is a complete daily record —
 // plus today's custody schedule and activities.
 // Wire to Vercel Cron (see vercel.json). No-op unless RESEND_API_KEY is set.
-export async function GET() {
+export async function GET(request) {
   if (!process.env.RESEND_API_KEY) {
     return Response.json({ ok: true, skipped: 'RESEND_API_KEY not set' });
   }
@@ -16,6 +16,10 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } }
   );
+  // Prefer the configured URL; Vercel cron hits the real domain, so the
+  // request origin is a solid fallback.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    || (request?.url ? new URL(request.url).origin : '');
   const { data: pending } = await admin.from('notifications')
     .select('*, profiles(email, name)').eq('emailed', false).limit(200);
   if (!pending?.length) return Response.json({ ok: true, sent: 0 });
@@ -49,7 +53,7 @@ export async function GET() {
     return (arrs || [])
       .filter(a => ['h', 'c'].some(s => sideMembers(a, s).some(m => m.user_id === userId)))
       .map(a => {
-        const kids = (a.children || []).map(k => k.name.split(' ')[0]).join(' & ') || a.name;
+        const kids = listNames((a.children || []).map(k => k.name.split(' ')[0])) || a.name;
         const schedule = Array.isArray(a.schedules) ? a.schedules[0] : a.schedules;
         const w = schedule?.anchor_date ? daySummary(schedule, a.deviations || [], a.children || [], today) : null;
         const withWho = !w ? 'no schedule set'
@@ -81,7 +85,7 @@ export async function GET() {
         subject: items.length === 1
           ? 'Family Phases update'
           : `Family Phases: ${items.length} updates`,
-        text: `Hi ${name || 'there'},\n\n${schedBlock}Updates:\n\n${lines}\n\nOpen Family Phases: ${process.env.NEXT_PUBLIC_APP_URL || ''}`,
+        text: `Hi ${name || 'there'},\n\n${schedBlock}Updates:\n\n${lines}${appUrl ? `\n\nOpen Family Phases: ${appUrl}` : ''}`,
       }),
     });
     if (res.ok) {
