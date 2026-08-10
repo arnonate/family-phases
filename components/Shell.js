@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useStore, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import Setup from '@/components/Setup';
+import AddToHome from '@/components/AddToHome';
 import { Bell, X, Menu, LogOut } from 'lucide-react';
 import { Toasts } from '@/components/Toast';
 import { ConfirmHost } from '@/components/Confirm';
@@ -46,6 +47,7 @@ export default function Shell({ children }) {
 
   return (
     <>
+      <AddToHome />
       <header className="top">
         {!needsSetup && (
           <button className="hamburger" aria-label="Menu" onClick={() => setDrawer(true)}>
