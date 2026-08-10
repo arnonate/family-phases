@@ -861,3 +861,91 @@ begin
 end $$;
 
 alter publication supabase_realtime add table member_identities, arrangement_viewers, arrangement_prefs;
+
+-- ============ NOTIFICATION HYGIENE ============
+-- Notifications carry a reference to the row that caused them, so deleting
+-- that row (withdrawn proposal, deleted expense/comment) retracts any
+-- notification nobody has been emailed about yet — no stale entries in the
+-- bell or the daily digest.
+
+alter table notifications add column ref_id uuid;
+
+drop function public.notify_arrangement(uuid, uuid, text, text);
+create function public.notify_arrangement(aid uuid, actor uuid, ntype text, msg text, ref uuid default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  insert into notifications (user_id, arrangement_id, type, message, read, ref_id)
+  select distinct hm.user_id, aid, ntype, msg, (hm.user_id = actor), ref
+  from arrangements a
+  join household_members hm on hm.household_id in (a.h_household_id, a.c_household_id)
+  where a.id = aid;
+end $$;
+
+create or replace function public.trg_expense_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name,email) into nm from profiles where id = auth.uid();
+  if tg_op = 'INSERT' and new.status = 'pending' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'expense_pending',
+      nm || ' added a $' || round(new.amount,2) || ' expense that needs approval: ' || coalesce(new.description, new.category), new.id);
+  elsif tg_op = 'UPDATE' and old.status = 'pending' and new.status <> 'pending' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'expense_' || new.status,
+      nm || ' ' || new.status || ' the $' || round(new.amount,2) || ' expense: ' || coalesce(new.description, new.category), new.id);
+  end if;
+  return new;
+end $$;
+
+create or replace function public.trg_deviation_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name,email) into nm from profiles where id = auth.uid();
+  if tg_op = 'INSERT' and new.status = 'proposed' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'deviation_proposed',
+      nm || ' proposed a schedule change ' || new.start_date || ' to ' || new.end_date || coalesce(': ' || new.note, ''), new.id);
+  elsif tg_op = 'UPDATE' and old.status = 'proposed' and new.status <> 'proposed' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'deviation_' || new.status,
+      nm || ' ' || new.status || ' the schedule change for ' || new.start_date || ' to ' || new.end_date, new.id);
+  end if;
+  return new;
+end $$;
+
+create or replace function public.trg_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text; t text;
+begin
+  select coalesce(name, email) into nm from profiles where id = auth.uid();
+  select title into t from todos where id = new.todo_id;
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'todo_comment',
+    nm || ' commented on "' || coalesce(t, 'a to-do') || '": ' || left(new.body, 120), new.id);
+  return new;
+end $$;
+
+create or replace function public.trg_day_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name, email) into nm from profiles where id = auth.uid();
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'day_comment',
+    nm || ' commented on ' || to_char(new.date, 'Mon FMDD') || ': ' || left(new.body, 120), new.id);
+  return new;
+end $$;
+
+-- Retract notifications for rows that no longer exist. Already-emailed ones
+-- stay marked emailed (the email went out; nothing to retract).
+create or replace function public.trg_retract_notifications()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from notifications where ref_id = old.id;
+  return old;
+end $$;
+
+create trigger expense_retract after delete on expenses
+  for each row execute function public.trg_retract_notifications();
+create trigger deviation_retract after delete on deviations
+  for each row execute function public.trg_retract_notifications();
+create trigger todo_comment_retract after delete on todo_comments
+  for each row execute function public.trg_retract_notifications();
+create trigger day_comment_retract after delete on day_comments
+  for each row execute function public.trg_retract_notifications();

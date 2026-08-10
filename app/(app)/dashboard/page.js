@@ -15,9 +15,6 @@ function WeekList({ arrangements, tod, nameForSide, actFilter }) {
       <h2>Week at a glance</h2>
       {[...Array(7)].map((_, i) => {
         const d = addDays(tod, i);
-        const acts = arrangements.flatMap(a =>
-          (a.activities || []).filter(act => activityOn(act, d) && (!actFilter || actFilter(act)))
-            .map(act => ({ ...act, arr: a })));
         return (
           <div key={d} className="wl-row">
             <div className="wl-date">
@@ -25,30 +22,32 @@ function WeekList({ arrangements, tod, nameForSide, actFilter }) {
               {pd(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </div>
             <div className="wl-body">
-              <div className="wl-arrs">
-                {arrangements.map(a => {
-                  const w = daySummary(a.schedule, a.deviations, a.children, d);
-                  return (
-                    <span key={a.id} className="wl-arr">
+              {arrangements.map(a => {
+                const w = daySummary(a.schedule, a.deviations, a.children, d);
+                const acts = (a.activities || [])
+                  .filter(act => activityOn(act, d) && (!actFilter || actFilter(act)));
+                return (
+                  <div key={a.id} className="wl-arr-block">
+                    <div className="wl-arrs">
                       {arrangements.length > 1 && <span className="muted">{arrName(a)} </span>}
                       <span className={`pill ${w === 'mix' || !w ? 'cat' : w}`}>
                         {w ? (w === 'mix' ? 'Split' : nameForSide(a, w)) : '—'}
                       </span>
                       {isTransfer(a.schedule, a.deviations, a.children, d) &&
-                        <ArrowLeftRight size={11} strokeWidth={2.5} style={{ verticalAlign: '-1px', marginLeft: 4, color: 'var(--slate-blue)' }} />}
-                    </span>
-                  );
-                })}
-              </div>
-              {acts.map(act => (
-                <div key={act.id} className="wl-act">
-                  {act.time && <b>{act.time}</b>} {act.name}
-                  {act.child_ids?.length > 0 && (
-                    <span className="muted"> — {act.child_ids.map(id => kidName(act.arr, id)).join(', ')}</span>
-                  )}
-                  {act.location && <span className="muted"> · {act.location}</span>}
-                </div>
-              ))}
+                        <ArrowLeftRight size={11} strokeWidth={2.5} style={{ verticalAlign: '-1px', color: 'var(--slate-blue)' }} />}
+                    </div>
+                    {acts.map(act => (
+                      <div key={act.id} className="wl-act">
+                        {act.time && <b>{act.time}</b>} {act.name}
+                        {act.child_ids?.length > 0 && (
+                          <span className="muted"> — {act.child_ids.map(id => kidName(a, id)).join(', ')}</span>
+                        )}
+                        {act.location && <span className="muted"> · {act.location}</span>}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

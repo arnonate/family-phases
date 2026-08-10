@@ -22,6 +22,7 @@ export default function CalendarPage() {
   const [devModal, setDevModal] = useState(null);      // {date} | true
   const [view, setView] = useState(() =>
     (typeof window !== 'undefined' && localStorage.getItem('fp_calview')) || 'grid');
+  const [showAllDevs, setShowAllDevs] = useState(false);
   function switchView(v) { setView(v); try { localStorage.setItem('fp_calview', v); } catch {} }
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
@@ -70,6 +71,11 @@ export default function CalendarPage() {
   const decidedDevs = shown.flatMap(a =>
     a.deviations.filter(d => d.status !== 'proposed').map(d => ({ ...d, arr: a })))
     .sort((x, y) => (x.start_date < y.start_date ? 1 : -1));
+  // Everything is kept forever as the audit trail; the list just shows the
+  // recent window unless expanded.
+  const devCutoff = addDays(tod, -60);
+  const recentDevs = decidedDevs.filter(d => d.end_date >= devCutoff);
+  const visibleDevs = showAllDevs ? decidedDevs : recentDevs;
 
   async function decide(dev, status) {
     const { error } = await supa().from('deviations').update({ status, decided_by: me.id }).eq('id', dev.id);
@@ -179,34 +185,37 @@ export default function CalendarPage() {
                     {pd(dstr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </div>
                   <div className="wl-body">
-                    <div className="wl-arrs">
-                      {shown.map(a => {
-                        const w = daySummary(a.schedule, a.deviations, a.children, dstr);
-                        return (
-                          <span key={a.id} className="wl-arr">
+                    {shown.map(a => {
+                      const w = daySummary(a.schedule, a.deviations, a.children, dstr);
+                      const acts = (a.activities || []).filter(act => activityOn(act, dstr));
+                      const comments = (a.day_comments || []).filter(c => c.date === dstr).length;
+                      return (
+                        <div key={a.id} className="wl-arr-block">
+                          <div className="wl-arrs">
                             {shown.length > 1 && <span className="muted">{arrName(a)} </span>}
                             <span className={`pill ${w === 'mix' || !w ? 'cat' : w}`}>
                               {w ? (w === 'mix' ? 'Split' : nameFor(a, w)) : '—'}
                             </span>
-                          </span>
-                        );
-                      })}
-                      {info.transfer && <ArrowLeftRight size={11} strokeWidth={2.5} style={{ color: 'var(--slate-blue)' }} />}
-                      {info.commentCount > 0 && (
-                        <span className="mini" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                          <MessageCircle size={10} strokeWidth={2.5} />{info.commentCount}
-                        </span>
-                      )}
-                    </div>
-                    {info.acts.map(act => (
-                      <div key={act.id} className="wl-act">
-                        {act.time && <b>{act.time}</b>} {act.name}
-                        {act.child_ids?.length > 0 && (
-                          <span className="muted"> — {act.child_ids.map(id => kidName(act.arr, id)).join(', ')}</span>
-                        )}
-                        {act.location && <span className="muted"> · {act.location}</span>}
-                      </div>
-                    ))}
+                            {isTransfer(a.schedule, a.deviations, a.children, dstr) &&
+                              <ArrowLeftRight size={11} strokeWidth={2.5} style={{ color: 'var(--slate-blue)' }} />}
+                            {comments > 0 && (
+                              <span className="mini" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                <MessageCircle size={10} strokeWidth={2.5} />{comments}
+                              </span>
+                            )}
+                          </div>
+                          {acts.map(act => (
+                            <div key={act.id} className="wl-act">
+                              {act.time && <b>{act.time}</b>} {act.name}
+                              {act.child_ids?.length > 0 && (
+                                <span className="muted"> — {act.child_ids.map(id => kidName(a, id)).join(', ')}</span>
+                              )}
+                              {act.location && <span className="muted"> · {act.location}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -216,12 +225,20 @@ export default function CalendarPage() {
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <h2>Schedule changes</h2>
-        {decidedDevs.length === 0 && <div className="empty">No deviations — the regular patterns apply.</div>}
-        {decidedDevs.length > 0 && (
+        <h2>Schedule changes
+          {decidedDevs.length > recentDevs.length && (
+            <button className="btn small subtle" onClick={() => setShowAllDevs(v => !v)}>
+              {showAllDevs ? 'Recent only' : `Show all (${decidedDevs.length})`}
+            </button>
+          )}
+        </h2>
+        {visibleDevs.length === 0 && <div className="empty">
+          {decidedDevs.length ? 'None recently — older ones are under "Show all".' : 'No deviations — the regular patterns apply.'}
+        </div>}
+        {visibleDevs.length > 0 && (
           <table><tbody>
             <tr><th>Dates</th><th>Kids</th><th>With</th><th>Status</th><th>Note</th></tr>
-            {decidedDevs.map(d => (
+            {visibleDevs.map(d => (
               <tr key={d.id}>
                 <td>{fmt(d.start_date)}{d.end_date !== d.start_date && <> – {fmt(d.end_date)}</>}</td>
                 <td>{d.child_ids?.length ? d.child_ids.map(id => kidName(d.arr, id)).join(', ') : 'All'}</td>
