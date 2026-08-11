@@ -112,6 +112,7 @@ export default function Shell({ children }) {
       <main className="wrap">
         {needsSetup ? <Setup /> : children}
       </main>
+      <footer className="site">Family Phases &copy; {new Date().getFullYear()}</footer>
       <Toasts />
       <ConfirmHost />
     </>
