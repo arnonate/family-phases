@@ -6,7 +6,7 @@ import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/compone
 import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
 import { Banknote, Paperclip } from 'lucide-react';
 import { toast } from '@/components/Toast';
-import { confirmDelete } from '@/components/Confirm';
+import { confirmDelete, confirmAction } from '@/components/Confirm';
 
 export default function ExpensesPage() {
   const store = useStore();
@@ -28,7 +28,18 @@ export default function ExpensesPage() {
   const pending = arr.expenses.filter(e => e.status === 'pending');
 
   async function decide(e, status) {
-    const { error } = await supa().from('expenses').update({ status, decided_by: me.id }).eq('id', e.id);
+    let decision_note = null;
+    if (status === 'disputed') {
+      const r = await confirmAction({
+        title: 'Dispute this expense?',
+        message: 'The other home will be notified. A short reason helps sort it out.',
+        confirmLabel: 'Dispute', withReason: true, reasonPlaceholder: 'e.g. Receipt shows a different amount (optional)',
+      });
+      if (!r) return;
+      decision_note = r.reason;
+    }
+    const { error } = await supa().from('expenses')
+      .update({ status, decided_by: me.id, decision_note }).eq('id', e.id);
     if (error) toast.error(`Couldn't update expense: ${error.message}`);
     store.refresh();
   }
@@ -131,18 +142,18 @@ export default function ExpensesPage() {
 
       <div className="card">
         <h2>Expenses
-          <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select style={{ width: 'auto' }} value={monthFilter} onChange={e => setMonthFilter(e.target.value)}>
-              <option value="all">All months</option>
-              {months.map(m => <option key={m} value={m}>{new Date(m + '-15').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</option>)}
-            </select>
-            <button className="btn small subtle" onClick={exportLedger}>Export ledger (CSV)</button>
-            {side && <>
-              <button className="btn small subtle" onClick={() => setShowSettle(true)}>Record payment</button>
-              <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>
-            </>}
-          </span>
+          <select style={{ width: 'auto' }} value={monthFilter} onChange={e => setMonthFilter(e.target.value)}>
+            <option value="all">All months</option>
+            {months.map(m => <option key={m} value={m}>{new Date(m + '-15').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</option>)}
+          </select>
         </h2>
+        <div className="exp-actions">
+          <button className="btn small subtle" onClick={exportLedger}>Export ledger (CSV)</button>
+          {side && <>
+            <button className="btn small subtle" onClick={() => setShowSettle(true)}>Record payment</button>
+            <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>
+          </>}
+        </div>
         <div style={{ overflowX: 'auto' }}>
           {rows.length === 0 ? <div className="empty">No expenses{monthFilter !== 'all' ? ' this month' : ' yet'}.</div> : (
             <table><tbody>
@@ -154,7 +165,9 @@ export default function ExpensesPage() {
                   <td>{fmt(e.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
                   <td>{(e.child_ids || []).map(id => kidName(arr, id)).join(', ') || '—'}</td>
                   <td><span className="pill cat">{e.category}</span></td>
-                  <td>{e.description}{e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}</td>
+                  <td>{e.description}
+                    {e.decision_note && <span className="muted"> · {e.status}: {e.decision_note}</span>}
+                    {e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}</td>
                   <td className="right">{money(Number(e.amount))}</td>
                   <td><span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span></td>
                   <td className="right">{money(Number(e.amount) * arr.split_pct / 100)}</td>

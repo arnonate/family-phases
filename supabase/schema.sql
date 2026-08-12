@@ -979,3 +979,41 @@ drop policy "expenses decide" on expenses;
 create policy "expenses decide" on expenses for update
   using (public.is_arrangement_member(arrangement_id)
      and public.arrangement_side(arrangement_id) is distinct from public.side_of(arrangement_id, created_by));
+
+-- ============ DECISION REASONS ============
+-- Decliners/disputers can say why; the reason rides along in notifications.
+
+alter table deviations add column decision_note text;
+alter table expenses add column decision_note text;
+
+create or replace function public.trg_expense_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name,email) into nm from profiles where id = auth.uid();
+  if tg_op = 'INSERT' and new.status = 'pending' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'expense_pending',
+      nm || ' added a $' || round(new.amount,2) || ' expense that needs approval: ' || coalesce(new.description, new.category), new.id);
+  elsif tg_op = 'UPDATE' and old.status = 'pending' and new.status <> 'pending' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'expense_' || new.status,
+      nm || ' ' || new.status || ' the $' || round(new.amount,2) || ' expense: ' || coalesce(new.description, new.category)
+        || coalesce(' — "' || nullif(new.decision_note, '') || '"', ''), new.id);
+  end if;
+  return new;
+end $$;
+
+create or replace function public.trg_deviation_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name,email) into nm from profiles where id = auth.uid();
+  if tg_op = 'INSERT' and new.status = 'proposed' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'deviation_proposed',
+      nm || ' proposed a schedule change ' || new.start_date || ' to ' || new.end_date || coalesce(': ' || new.note, ''), new.id);
+  elsif tg_op = 'UPDATE' and old.status = 'proposed' and new.status <> 'proposed' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'deviation_' || new.status,
+      nm || ' ' || new.status || ' the schedule change for ' || new.start_date || ' to ' || new.end_date
+        || coalesce(' — "' || nullif(new.decision_note, '') || '"', ''), new.id);
+  end if;
+  return new;
+end $$;

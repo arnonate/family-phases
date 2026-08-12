@@ -7,7 +7,7 @@ import Moon, { phaseLabel } from '@/components/Moon';
 import { ArrowLeftRight, CalendarDays, MessageCircle, LayoutGrid, List } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
-import { confirmDelete } from '@/components/Confirm';
+import { confirmDelete, confirmAction } from '@/components/Confirm';
 import {
   ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer, activityOn,
 } from '@/lib/custody';
@@ -78,7 +78,18 @@ export default function CalendarPage() {
   const visibleDevs = showAllDevs ? decidedDevs : recentDevs;
 
   async function decide(dev, status) {
-    const { error } = await supa().from('deviations').update({ status, decided_by: me.id }).eq('id', dev.id);
+    let decision_note = null;
+    if (status === 'declined') {
+      const r = await confirmAction({
+        title: 'Decline this proposal?',
+        message: `${sideName(dev.arr, mySide(dev.arr, dev.proposed_by) || 'h')} will be notified. A short reason helps them know what to propose instead.`,
+        confirmLabel: 'Decline', withReason: true, reasonPlaceholder: 'e.g. We have plans that weekend (optional)',
+      });
+      if (!r) return;
+      decision_note = r.reason;
+    }
+    const { error } = await supa().from('deviations')
+      .update({ status, decided_by: me.id, decision_note }).eq('id', dev.id);
     if (error) toast.error(`Couldn't update proposal: ${error.message}`);
     store.refresh();
   }
@@ -256,7 +267,9 @@ export default function CalendarPage() {
                 <td>{d.child_ids?.length ? d.child_ids.map(id => kidName(d.arr, id)).join(', ') : 'All'}</td>
                 <td><span className={`pill ${d.who}`}>{sideName(d.arr, d.who)}</span></td>
                 <td><span className={`pill ${d.status}`}>{d.status}</span></td>
-                <td className="muted">{d.note}</td>
+                <td className="muted">
+                  {[d.note, d.decision_note && `${d.status}: ${d.decision_note}`].filter(Boolean).join(' · ')}
+                </td>
               </tr>
             ))}
           </tbody></table>

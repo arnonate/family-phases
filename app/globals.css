@@ -84,7 +84,7 @@ label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bot
 .row>*{flex:1;min-width:120px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line)}
-td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 .right{text-align:right}
 .muted{color:var(--muted)}
@@ -204,8 +204,9 @@ tr:last-child td{border-bottom:none}
 .c-head button{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex}
 .c-head button:hover{color:var(--red)}
 .c-body{font-size:13.5px;margin-top:1px;white-space:pre-wrap}
-.c-form{display:flex;gap:6px;margin-top:8px}
-.c-form input{font-size:13.5px;padding:7px 10px}
+.c-form{display:flex;gap:6px;margin-top:8px;align-items:flex-end}
+.c-form input,.c-form textarea{font-size:13.5px;padding:7px 10px}
+.exp-actions{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px}
 .c-form .btn{flex:none;display:inline-flex;align-items:center}
 .notif-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-size:14px}
 .notif-head button{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex}
