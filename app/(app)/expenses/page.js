@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
-import { todayStr, fmt, money, balance, CATS } from '@/lib/custody';
+import { todayStr, fmt, money, balance, expenseSplit, CATS } from '@/lib/custody';
 import { Banknote, Paperclip } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { confirmDelete, confirmAction } from '@/components/Confirm';
@@ -68,7 +68,10 @@ export default function ExpensesPage() {
         description: e.description || '', children: (e.child_ids || []).map(id => kidName(arr, id)).join('; '),
         amount: Number(e.amount), paid_by: sideName(arr, e.paid_by),
         // effect on "household owes co-parent" balance
-        delta: e.paid_by === 'c' ? Number(e.amount) * arr.split_pct / 100 : -Number(e.amount) * (100 - arr.split_pct) / 100,
+        share: Number(e.amount) * expenseSplit(arr, e),
+        delta: e.paid_by === 'c'
+          ? Number(e.amount) * expenseSplit(arr, e)
+          : -Number(e.amount) * (1 - expenseSplit(arr, e)),
       })),
       ...arr.settlements.map(p => ({
         date: p.date, kind: 'Payment', category: '',
@@ -83,13 +86,13 @@ export default function ExpensesPage() {
     const q = v => '"' + String(v).replaceAll('"', '""') + '"';
     const lines = [
       ['Date','Type','Category','Description','Children','Amount','Paid by',
-       `${sideName(arr,'h')} share (${arr.split_pct}%)`,
+       `${sideName(arr,'h')} share`,
        `Running balance (+ = ${sideName(arr,'h')} owes ${sideName(arr,'c')})`].map(q).join(','),
       ...events.map(ev => {
         run += ev.delta;
         return [ev.date, ev.kind, ev.category, ev.description, ev.children,
           ev.amount.toFixed(2), ev.paid_by,
-          ev.kind === 'Expense' ? (ev.amount * arr.split_pct / 100).toFixed(2) : '',
+          ev.kind === 'Expense' ? ev.share.toFixed(2) : '',
           run.toFixed(2)].map(q).join(',');
       }),
     ];
@@ -109,7 +112,8 @@ export default function ExpensesPage() {
           {pending.map(e => (
             <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '4px 0' }}>
               <span><Banknote size={14} style={{ verticalAlign: '-2px' }} /> <b>{money(Number(e.amount))}</b> {e.category.toLowerCase()} — {e.description || 'no description'}
-                {' '}(paid by {sideName(arr, e.paid_by)}, over the {money(Number(arr.approval_threshold))} threshold)</span>
+                {' '}(paid by {sideName(arr, e.paid_by)}, over the {money(Number(arr.approval_threshold))} threshold
+                {e.split_pct != null && <>, custom split {e.split_pct}/{100 - e.split_pct}</>})</span>
               {side && mySide(arr, e.created_by) !== side ? (
                 <span style={{ display: 'flex', gap: 6 }}>
                   <button className="btn small green" onClick={() => decide(e, 'approved')}>Approve</button>
@@ -136,7 +140,8 @@ export default function ExpensesPage() {
           <div className="stat">{money(mTot)}<small>{mExp.length} expense{mExp.length === 1 ? '' : 's'}</small></div>
         </div>
         <div className="card"><h2>{side === 'h' ? 'My share this month' : `${sideName(arr, 'h')}'s share this month`}</h2>
-          <div className="stat">{money(mTot * arr.split_pct / 100)}<small>{arr.split_pct}% of shared costs</small></div>
+          <div className="stat">{money(mExp.reduce((s, e) => s + Number(e.amount) * expenseSplit(arr, e), 0))}
+            <small>{arr.split_pct}% default split</small></div>
         </div>
       </div>
 
@@ -170,7 +175,8 @@ export default function ExpensesPage() {
                     {e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}</td>
                   <td className="right">{money(Number(e.amount))}</td>
                   <td><span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span></td>
-                  <td className="right">{money(Number(e.amount) * arr.split_pct / 100)}</td>
+                  <td className="right">{money(Number(e.amount) * expenseSplit(arr, e))}
+                    {e.split_pct != null && <span className="mini" title={`Custom split: ${e.split_pct}/${100 - e.split_pct}`} style={{ marginLeft: 4 }}>{e.split_pct}%</span>}</td>
                   <td><span className={`pill ${e.status}`}>{e.status}</span></td>
                   <td className="right">{e.created_by === me.id && e.status !== 'pending' &&
                     <button className="btn danger small" onClick={() => remove(e)}>✕</button>}</td>
@@ -218,9 +224,23 @@ function AddExpense({ arr, me, store, onClose }) {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const [splitChoice, setSplitChoice] = useState('default');
+  const [customPct, setCustomPct] = useState(arr.split_pct);
+
   const otherPartyJoined = bothSidesJoined(arr);
   const amt = parseFloat(amount);
   const needsApproval = otherPartyJoined && amt > Number(arr.approval_threshold);
+
+  // Resolve the choice to an h-side share; null = arrangement default.
+  const splitOverride =
+    splitChoice === 'default' ? null
+    : splitChoice === 'even' ? 50
+    : splitChoice === 'payback' ? (paidBy === 'h' ? 0 : 100)     // payer fully reimbursed
+    : splitChoice === 'no-reimburse' ? (paidBy === 'h' ? 100 : 0) // payer covers it all
+    : Math.min(100, Math.max(0, +customPct || 0));
+  const hPct = splitOverride ?? arr.split_pct;
+  const otherOwes = !(amt > 0) ? null
+    : paidBy === 'h' ? amt * (100 - hPct) / 100 : amt * hPct / 100;
 
   async function submit() {
     if (!date || !(amt > 0)) { toast.error('Enter a date and a positive amount.'); return; }
@@ -237,6 +257,7 @@ function AddExpense({ arr, me, store, onClose }) {
       arrangement_id: arr.id, date, amount: amt, category,
       description: desc.trim() || null, child_ids: kids, paid_by: paidBy,
       receipt_path, status: needsApproval ? 'pending' : 'approved', created_by: me.id,
+      split_pct: splitOverride,
     });
     setBusy(false);
     if (error) { toast.error(`Couldn't save expense: ${error.message}`); return; }
@@ -263,8 +284,23 @@ function AddExpense({ arr, me, store, onClose }) {
       <div className="field"><label>Description</label><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="e.g. Soccer registration, copay…" /></div>
       <div className="field"><label>Receipt (optional)</label>
         <input type="file" accept="image/*,.pdf" onChange={e => setFile(e.target.files[0] || null)} /></div>
+      <div className="row">
+        <div className="field"><label>Split</label>
+          <select value={splitChoice} onChange={e => setSplitChoice(e.target.value)}>
+            <option value="default">Default ({arr.split_pct}/{100 - arr.split_pct})</option>
+            <option value="even">50/50</option>
+            <option value="payback">Fully paid back to {sideName(arr, paidBy)}</option>
+            <option value="no-reimburse">{sideName(arr, paidBy)} covers it all</option>
+            <option value="custom">Custom…</option>
+          </select></div>
+        {splitChoice === 'custom' && (
+          <div className="field"><label>{sideName(arr, 'h')}&apos;s share</label>
+            <UnitInput unit="%" type="number" min="0" max="100" value={customPct} onChange={e => setCustomPct(e.target.value)} /></div>
+        )}
+      </div>
       <p className="muted" style={{ fontSize: 12.5 }}>
-        Split: {sideName(arr, 'h')} covers <b>{arr.split_pct}%</b>, {sideName(arr, 'c')} covers {100 - arr.split_pct}%.
+        {sideName(arr, 'h')} covers <b>{hPct}%</b>, {sideName(arr, 'c')} covers {100 - hPct}%.
+        {otherOwes != null && <> {sideName(arr, paidBy === 'h' ? 'c' : 'h')} owes <b>{money(otherOwes)}</b> of this.</>}
         {needsApproval && <> This is over {money(Number(arr.approval_threshold))}, so it needs the other parent&apos;s approval before it counts toward the balance.</>}
       </p>
       <div className="actions">

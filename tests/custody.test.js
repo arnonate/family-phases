@@ -83,6 +83,17 @@ describe('balance', () => {
   it('handles a 50/50 arrangement', () => {
     expect(balance({ split_pct: 50 }, [{ status: 'approved', amount: 100, paid_by: 'c' }], [])).toBeCloseTo(50);
   });
+  it('a per-expense split override beats the arrangement default', () => {
+    const exp = [
+      // h paid, charging back 100% (h share 0): they owe the full amount
+      { status: 'approved', amount: 100, paid_by: 'h', split_pct: 0 },
+      // c paid, no reimbursement (h share 0): nothing owed
+      { status: 'approved', amount: 500, paid_by: 'c', split_pct: 0 },
+      // null override falls back to the 75/25 default
+      { status: 'approved', amount: 100, paid_by: 'c', split_pct: null },
+    ];
+    expect(balance(arr75, exp, [])).toBeCloseTo(-100 + 0 + 75);
+  });
 });
 
 describe('activities', () => {

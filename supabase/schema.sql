@@ -1017,3 +1017,9 @@ begin
   end if;
   return new;
 end $$;
+
+-- ============ PER-EXPENSE SPLIT OVERRIDE ============
+-- Null = the arrangement's split applies (and keeps tracking it if it
+-- changes); a value pins this expense's h-side share.
+
+alter table expenses add column split_pct int check (split_pct between 0 and 100);
