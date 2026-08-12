@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { arrName } from '@/lib/store';
 
@@ -61,6 +61,16 @@ export function StructureHelp() {
       </p>
     </InfoTip>
   );
+}
+
+// Single-line-looking textarea that grows with its content.
+export function GrowText({ value, ...props }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+  }, [value]);
+  return <textarea ref={ref} rows={1} className="grow" value={value} {...props} />;
 }
 
 export function UnitInput({ unit, wrapStyle, ...props }) {

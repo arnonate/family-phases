@@ -164,6 +164,18 @@ async function main() {
   const { data: pendAfter } = await admin.from('expenses').select('id').eq('id', pend.id);
   check('pending expenses cannot be deleted, even by creator', pendAfter?.length === 1);
 
+  // Approvals must come from the other home
+  const devId = randomUUID();
+  await parent.client.from('deviations').insert({
+    id: devId, arrangement_id: arrId, start_date: '2026-02-01', end_date: '2026-02-02', who: 'h', proposed_by: parent.id,
+  });
+  await partner.client.from('deviations').update({ status: 'accepted', decided_by: partner.id }).eq('id', devId);
+  const { data: devSame } = await admin.from('deviations').select('status').eq('id', devId).single();
+  check("a partner in the proposer's home cannot decide", devSame?.status === 'proposed');
+  await cpPartner.client.from('deviations').update({ status: 'accepted', decided_by: cpPartner.id }).eq('id', devId);
+  const { data: devCross } = await admin.from('deviations').select('status').eq('id', devId).single();
+  check('anyone in the other home can decide', devCross?.status === 'accepted');
+
   // Personal prefs are private
   await parent.client.from('arrangement_prefs').upsert({ arrangement_id: arrId, user_id: parent.id, nickname: 'mine' });
   const { data: cpPrefs } = await coparent.client.from('arrangement_prefs').select('*').eq('arrangement_id', arrId);

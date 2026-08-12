@@ -949,3 +949,33 @@ create trigger todo_comment_retract after delete on todo_comments
   for each row execute function public.trg_retract_notifications();
 create trigger day_comment_retract after delete on day_comments
   for each row execute function public.trg_retract_notifications();
+
+-- ============ CROSS-SIDE DECISIONS ============
+-- Approvals must come from the other home. Previously any member of either
+-- home (except the proposer) could decide — which let a partner approve
+-- their own household's proposal.
+
+create or replace function public.side_of(aid uuid, uid uuid)
+returns text language sql security definer stable set search_path = public as $$
+  select case
+    when exists (select 1 from arrangements a join household_members hm on hm.household_id = a.h_household_id
+                 where a.id = aid and hm.user_id = uid) then 'h'
+    when exists (select 1 from arrangements a join household_members hm on hm.household_id = a.c_household_id
+                 where a.id = aid and hm.user_id = uid) then 'c'
+  end;
+$$;
+
+create or replace function public.arrangement_side(aid uuid)
+returns text language sql security definer stable set search_path = public as $$
+  select public.side_of(aid, auth.uid());
+$$;
+
+drop policy "deviations decide" on deviations;
+create policy "deviations decide" on deviations for update
+  using (public.is_arrangement_member(arrangement_id)
+     and public.arrangement_side(arrangement_id) is distinct from public.side_of(arrangement_id, proposed_by));
+
+drop policy "expenses decide" on expenses;
+create policy "expenses decide" on expenses for update
+  using (public.is_arrangement_member(arrangement_id)
+     and public.arrangement_side(arrangement_id) is distinct from public.side_of(arrangement_id, created_by));

@@ -2,7 +2,7 @@
 import { useState, Fragment } from 'react';
 import { useStore, sideName, kidSideName, mySide, kidName, childIdentity, bothSidesJoined, isViewer, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { Modal, KidChecks, ArrTabs, useArrSelection } from '@/components/ui';
+import { Modal, KidChecks, ArrTabs, useArrSelection, GrowText } from '@/components/ui';
 import Moon, { phaseLabel } from '@/components/Moon';
 import { ArrowLeftRight, CalendarDays, MessageCircle, LayoutGrid, List } from 'lucide-react';
 import { toast } from '@/components/Toast';
@@ -95,24 +95,36 @@ export default function CalendarPage() {
 
       {pendingDevs.length > 0 && (
         <div className="approval-banner">
-          {pendingDevs.map(d => (
-            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '4px 0' }}>
-              <span><CalendarDays size={14} style={{ verticalAlign: '-2px' }} /> <b>Proposed:</b> kids with <b>{sideName(d.arr, d.who)}</b> {fmt(d.start_date)}
-                {d.end_date !== d.start_date && <> – {fmt(d.end_date)}</>} {d.note && <>· {d.note}</>}</span>
-              {d.proposed_by !== me.id && mySide(d.arr, me.id) && (
-                <span style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn small green" onClick={() => decide(d, 'accepted')}>Accept</button>
-                  <button className="btn small red" onClick={() => decide(d, 'declined')}>Decline</button>
-                </span>
-              )}
-              {d.proposed_by === me.id && (
-                <span className="muted" style={{ fontSize: 12.5 }}>
-                  waiting for {sideName(d.arr, mySide(d.arr, me.id) === 'h' ? 'c' : 'h')} ·{' '}
-                  <button className="btn danger small" onClick={() => removeDev(d)}>withdraw</button>
-                </span>
-              )}
-            </div>
-          ))}
+          {pendingDevs.map(d => {
+            const myS = mySide(d.arr, me.id);
+            const propS = mySide(d.arr, d.proposed_by);
+            // Only the other home decides — a partner in the proposer's own
+            // home can't approve for them (RLS enforces the same rule).
+            const canDecide = myS && myS !== propS;
+            return (
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '4px 0' }}>
+                <span><CalendarDays size={14} style={{ verticalAlign: '-2px' }} /> <b>Proposed:</b> kids with <b>{sideName(d.arr, d.who)}</b> {fmt(d.start_date)}
+                  {d.end_date !== d.start_date && <> – {fmt(d.end_date)}</>} {d.note && <>· {d.note}</>}</span>
+                {canDecide && (
+                  <span style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn small green" onClick={() => decide(d, 'accepted')}>Accept</button>
+                    <button className="btn small red" onClick={() => decide(d, 'declined')}>Decline</button>
+                  </span>
+                )}
+                {d.proposed_by === me.id && (
+                  <span className="muted" style={{ fontSize: 12.5 }}>
+                    waiting for {sideName(d.arr, propS === 'h' ? 'c' : 'h')} ·{' '}
+                    <button className="btn danger small" onClick={() => removeDev(d)}>withdraw</button>
+                  </span>
+                )}
+                {!canDecide && d.proposed_by !== me.id && (
+                  <span className="muted" style={{ fontSize: 12.5 }}>
+                    awaiting {sideName(d.arr, propS === 'h' ? 'c' : 'h')}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -417,7 +429,7 @@ function DeviationModal({ init, arrangements, defaultArr, me, store, onClose }) 
       <div className="field"><label>Which children? (none checked = all)</label>
         <KidChecks children={arr.children} value={kids} onChange={setKids} /></div>
       <div className="field"><label>Note</label>
-        <input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Spring break swap" /></div>
+        <GrowText value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Spring break swap" /></div>
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Cancel</button>
         <button className="btn" disabled={busy} onClick={submit}>{otherPartyJoined ? 'Send proposal' : 'Save'}</button>

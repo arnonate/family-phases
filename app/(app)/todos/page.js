@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore, kidName, childIdentity, mySide, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { Modal, ArrTabs, useArrSelection } from '@/components/ui';
+import { Modal, ArrTabs, useArrSelection, GrowText } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
 import { User, MessageCircle } from 'lucide-react';
 import { toast } from '@/components/Toast';
@@ -173,7 +173,7 @@ function AddTodo({ arrangements, defaultArr, me, store, onClose }) {
   return (
     <Modal title="Add to-do / reminder" onClose={onClose}>
       <div className="field"><label>What needs doing?</label>
-        <input autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Turn in field-trip form" /></div>
+        <GrowText autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Turn in field-trip form" /></div>
       {arrangements.length > 1 && (
         <div className="field"><label>Arrangement</label>
           <select value={arrId} onChange={e => { setArrId(e.target.value); setChildId(''); setAssignee(''); }}>

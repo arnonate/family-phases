@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useStore, sideName, kidSideName, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
@@ -121,19 +122,22 @@ export default function Dashboard() {
   const store = useStore();
   const { arrangements, me } = store;
   const tod = todayStr();
+  const [nameNudgeGone, setNameNudgeGone] = useState(() =>
+    typeof window !== 'undefined' && !!localStorage.getItem('fp-name-nudge'));
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
 
   const child = childIdentity(arrangements, me.id);
   if (child) return <ChildDashboard child={child} tod={tod} />;
 
-  // items needing my decision (I'm a direct party and didn't create them)
+  // items needing my decision: created by the other home, not mine
   const needsMe = [];
   for (const a of arrangements) {
-    if (!mySide(a, me.id)) continue;
-    a.expenses.filter(e => e.status === 'pending' && e.created_by !== me.id)
+    const side = mySide(a, me.id);
+    if (!side) continue;
+    a.expenses.filter(e => e.status === 'pending' && mySide(a, e.created_by) !== side)
       .forEach(e => needsMe.push({ type: 'expense', a, item: e }));
-    a.deviations.filter(d => d.status === 'proposed' && d.proposed_by !== me.id)
+    a.deviations.filter(d => d.status === 'proposed' && mySide(a, d.proposed_by) !== side)
       .forEach(d => needsMe.push({ type: 'deviation', a, item: d }));
   }
 
@@ -154,6 +158,18 @@ export default function Dashboard() {
       <h1 style={{ fontSize: 22, margin: '2px 0 14px' }}>
         Hello, {me.name?.split(' ')[0] || 'there'} 👋
       </h1>
+      {!nameNudgeGone && me.name === me.email?.split('@')[0] && (
+        <div className="approval-banner" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ flex: 1 }}>
+            Welcome! You currently appear to your family as <b>{me.name}</b> — set your
+            display name in <Link href="/settings">Settings</Link>.
+          </span>
+          <button className="btn small subtle" style={{ flex: 'none' }}
+            onClick={() => { try { localStorage.setItem('fp-name-nudge', '1'); } catch {} setNameNudgeGone(true); }}>
+            Dismiss
+          </button>
+        </div>
+      )}
       {totalKids > 0 && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
           <Moon size={52} frac={homeKidsAll.length / totalKids} title="Tonight's phase" />

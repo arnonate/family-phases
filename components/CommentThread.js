@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { X, SendHorizontal } from 'lucide-react';
+import { GrowText } from '@/components/ui';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
 
@@ -49,7 +50,8 @@ export default function CommentThread({
       {!comments.length && <div className="muted" style={{ fontSize: 12.5, padding: '2px 0 6px' }}>{emptyText}</div>}
       <form className="c-form" onSubmit={post}>
         {controls}
-        <input value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…" />
+        <GrowText value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…"
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) post(e); }} />
         <button type="submit" className="btn small" disabled={busy || !body.trim()} aria-label="Post comment">
           <SendHorizontal size={14} />
         </button>

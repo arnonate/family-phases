@@ -99,7 +99,7 @@ export default function ExpensesPage() {
             <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '4px 0' }}>
               <span><Banknote size={14} style={{ verticalAlign: '-2px' }} /> <b>{money(Number(e.amount))}</b> {e.category.toLowerCase()} — {e.description || 'no description'}
                 {' '}(paid by {sideName(arr, e.paid_by)}, over the {money(Number(arr.approval_threshold))} threshold)</span>
-              {e.created_by !== me.id && side ? (
+              {side && mySide(arr, e.created_by) !== side ? (
                 <span style={{ display: 'flex', gap: 6 }}>
                   <button className="btn small green" onClick={() => decide(e, 'approved')}>Approve</button>
                   <button className="btn small red" onClick={() => decide(e, 'disputed')}>Dispute</button>
