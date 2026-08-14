@@ -127,7 +127,7 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      <div className="grid cols-3" style={{ marginBottom: 16 }}>
+      <div className="grid cols-3 exp-stats" style={{ marginBottom: 16 }}>
         <div className="card"><h2>Balance</h2>
           <div className={`stat ${Math.abs(bal) < 0.005 ? '' : bal > 0 ? 'neg' : 'pos'}`}>
             {money(Math.abs(bal))}
@@ -154,13 +154,41 @@ export default function ExpensesPage() {
         </h2>
         <div className="exp-actions">
           <button className="btn small subtle" onClick={exportLedger}>Export ledger (CSV)</button>
-          {side && <>
-            <button className="btn small subtle" onClick={() => setShowSettle(true)}>Record payment</button>
-            <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>
-          </>}
+          {side && <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>}
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          {rows.length === 0 ? <div className="empty">No expenses{monthFilter !== 'all' ? ' this month' : ' yet'}.</div> : (
+        {rows.length === 0 && <div className="empty">No expenses{monthFilter !== 'all' ? ' this month' : ' yet'}.</div>}
+        {rows.length > 0 && (
+          <div className="exp-cards">
+            {rows.map(e => (
+              <div key={e.id} className="exp-item">
+                <div className="ei-top">
+                  <b>{money(Number(e.amount))}</b>
+                  <span className="pill cat">{e.category}</span>
+                  <span className={`pill ${e.status}`}>{e.status}</span>
+                  <span className="ei-date">{fmt(e.date, { month: 'short', day: 'numeric' })}</span>
+                </div>
+                {(e.description || e.receipt_path || e.decision_note) && (
+                  <div className="ei-desc">{e.description}
+                    {e.decision_note && <span className="muted"> · {e.status}: {e.decision_note}</span>}
+                    {e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}
+                  </div>
+                )}
+                <div className="ei-meta">
+                  <span>
+                    paid by {sideName(arr, e.paid_by)}
+                    {(e.child_ids || []).length > 0 && <> · {e.child_ids.map(id => kidName(arr, id)).join(', ')}</>}
+                    {' '}· {side === 'h' ? 'my' : `${sideName(arr, 'h')}'s`} share {money(Number(e.amount) * expenseSplit(arr, e))}
+                    {e.split_pct != null && <span className="mini" style={{ marginLeft: 4 }}>{e.split_pct}%</span>}
+                  </span>
+                  {e.created_by === me.id && e.status !== 'pending' &&
+                    <button className="btn danger small" onClick={() => remove(e)}>✕</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="exp-table" style={{ overflowX: 'auto' }}>
+          {rows.length > 0 && (
             <table><tbody>
               <tr><th>Date</th><th>Child</th><th>Category</th><th>Description</th>
                 <th className="right">Amount</th><th>Paid by</th>
@@ -188,7 +216,9 @@ export default function ExpensesPage() {
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <h2>Payments / settlements</h2>
+        <h2>Payments / settlements
+          {side && <button className="btn small" onClick={() => setShowSettle(true)}>+ Record payment</button>}
+        </h2>
         {arr.settlements.length === 0 ? <div className="empty">No payments recorded yet.</div> : (
           <table><tbody>
             <tr><th>Date</th><th>Payment</th><th className="right">Amount</th><th>Note</th><th></th></tr>
