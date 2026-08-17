@@ -12,6 +12,8 @@
   --font-brand:'Plus Jakarta Sans','Inter',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* stop mobile browsers from "font boosting" text in wide scroll containers */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:var(--font-body);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
 a{color:var(--slate-blue);text-decoration:none}
 h1,h2,.stat{font-family:var(--font-brand)}
@@ -240,6 +242,8 @@ footer.site a{color:var(--muted);text-decoration:underline}
   .signout-desktop{display:none}
   /* every table scrolls sideways instead of breaking layout */
   .card table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  /* long free-text cells wrap instead of stretching the table */
+  .card table td.wrap-cell{white-space:normal;min-width:200px;max-width:280px}
   /* prevent iOS zoom-on-focus (fires below 16px) */
   input,select,textarea{font-size:16px}
   .c-form input,.c-form select,.c-form textarea{font-size:16px}

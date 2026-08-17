@@ -267,7 +267,7 @@ export default function CalendarPage() {
                 <td>{d.child_ids?.length ? d.child_ids.map(id => kidName(d.arr, id)).join(', ') : 'All'}</td>
                 <td><span className={`pill ${d.who}`}>{sideName(d.arr, d.who)}</span></td>
                 <td><span className={`pill ${d.status}`}>{d.status}</span></td>
-                <td className="muted">
+                <td className="muted wrap-cell">
                   {[d.note, d.decision_note && `${d.status}: ${d.decision_note}`].filter(Boolean).join(' · ')}
                 </td>
               </tr>
