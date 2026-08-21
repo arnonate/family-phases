@@ -138,6 +138,7 @@ tr:last-child td{border-bottom:none}
 .dow-row{display:flex;gap:6px}
 .dow{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
 .dow.on{background:var(--mid-navy);border-color:var(--mid-navy);color:var(--full-moon)}
+.dow.wide{width:auto;padding:0 16px;border-radius:18px}
 .act-chip{font-size:9.5px;font-weight:700;color:var(--slate-blue);background:rgba(255,255,255,.75);border-radius:5px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .act-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .act-row:last-of-type{border-bottom:none}

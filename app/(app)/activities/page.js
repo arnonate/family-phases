@@ -39,6 +39,7 @@ export default function ActivitiesPage() {
 
 function Activities({ arr, me, store, canEdit }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [kind, setKind] = useState('once');   // 'once' | 'recurring'
   const [name, setName] = useState('');
   const [kids, setKids] = useState([]);
   const [start, setStart] = useState('');
@@ -49,13 +50,14 @@ function Activities({ arr, me, store, canEdit }) {
   const [busy, setBusy] = useState(false);
 
   async function add() {
-    if (!name.trim() || !start || !end) { toast.error('Name, start, and end dates are required.'); return; }
-    if (end < start) { toast.error('The end date can’t be before the start.'); return; }
-    if (start !== end && !days.length) { toast.error('Pick at least one weekday, or set both dates to the same day for a one-off.'); return; }
+    const once = kind === 'once';
+    if (!name.trim() || !start || (!once && !end)) { toast.error(once ? 'Name and date are required.' : 'Name, start, and end dates are required.'); return; }
+    if (!once && end < start) { toast.error('The end date can’t be before the start.'); return; }
+    if (!once && !days.length) { toast.error('Pick at least one weekday for a recurring activity.'); return; }
     setBusy(true);
     const { error } = await supa().from('activities').insert({
       arrangement_id: arr.id, name: name.trim(), child_ids: kids,
-      start_date: start, end_date: end, days: start === end ? [] : days,
+      start_date: start, end_date: once ? start : end, days: once ? [] : days,
       time: time.trim() || null, location: location.trim() || null, created_by: me.id,
     });
     setBusy(false);
@@ -86,7 +88,7 @@ function Activities({ arr, me, store, canEdit }) {
         {canEdit && <button className="btn small" onClick={() => setShowAdd(v => !v)}>{showAdd ? 'Cancel' : '+ Add'}</button>}
       </h2>
       {!arr.activities?.length && !showAdd && (
-        <div className="empty">Nothing scheduled yet{canEdit ? ' — add a sport, camp, or lesson to get it on the calendar' : ''}.</div>
+        <div className="empty">Nothing scheduled yet{canEdit ? ' — add a practice season or a one-time event to get it on the calendar' : ''}.</div>
       )}
       {(arr.activities || []).map(act => (
         <div key={act.id} className="todo">
@@ -102,30 +104,48 @@ function Activities({ arr, me, store, canEdit }) {
       ))}
       {showAdd && (
         <div style={{ marginTop: 10 }}>
-          <div className="field"><label>Activity name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Soccer practice" autoFocus /></div>
+          <div className="field"><label>What kind?</label>
+            <div className="dow-row">
+              <button type="button" className={`dow wide ${kind === 'once' ? 'on' : ''}`}
+                onClick={() => setKind('once')}>One-time</button>
+              <button type="button" className={`dow wide ${kind === 'recurring' ? 'on' : ''}`}
+                onClick={() => setKind('recurring')}>Repeats weekly</button>
+            </div>
+            <p className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+              {kind === 'once'
+                ? 'A game, concert, appointment — anything that happens on one day.'
+                : 'Practices, lessons, camps — pick the weekdays and the season they run.'}
+            </p>
+          </div>
+          <div className="field"><label>{kind === 'once' ? 'Event name' : 'Activity name'}</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              placeholder={kind === 'once' ? 'e.g. Championship game, dentist appointment' : 'e.g. Soccer practice'} autoFocus /></div>
           <div className="field"><label>Which children?</label>
             <KidChecks children={arr.children} value={kids} onChange={setKids} /></div>
-          <div className="row">
-            <div className="field"><label>Season starts</label><input type="date" value={start} onChange={e => setStart(e.target.value)} /></div>
-            <div className="field"><label>Season ends</label><input type="date" value={end} onChange={e => setEnd(e.target.value)} /></div>
-          </div>
-          <div className="field"><label>Repeats on (leave empty for a one-day event)</label>
-            <div className="dow-row">
-              {DOW.map((d, i) => (
-                <button key={i} type="button" className={`dow ${days.includes(i) ? 'on' : ''}`}
-                  onClick={() => setDays(v => v.includes(i) ? v.filter(x => x !== i) : [...v, i])}>{d}</button>
-              ))}
-            </div>
-          </div>
+          {kind === 'once' ? (
+            <div className="field"><label>Date</label>
+              <input type="date" value={start} onChange={e => setStart(e.target.value)} /></div>
+          ) : (
+            <>
+              <div className="row">
+                <div className="field"><label>Season starts</label><input type="date" value={start} onChange={e => setStart(e.target.value)} /></div>
+                <div className="field"><label>Season ends</label><input type="date" value={end} onChange={e => setEnd(e.target.value)} /></div>
+              </div>
+              <div className="field"><label>Repeats on</label>
+                <div className="dow-row">
+                  {DOW.map((d, i) => (
+                    <button key={i} type="button" className={`dow ${days.includes(i) ? 'on' : ''}`}
+                      onClick={() => setDays(v => v.includes(i) ? v.filter(x => x !== i) : [...v, i])}>{d}</button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
           <div className="row">
             <div className="field"><label>Time</label><input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 5:30 PM" /></div>
             <div className="field"><label>Location</label><input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Riverside Park" /></div>
           </div>
-          <button className="btn" disabled={busy} onClick={add}>{busy ? 'Saving…' : 'Add activity'}</button>
-          <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-            For a single game or tournament day, set both dates to that day.
-          </p>
+          <button className="btn" disabled={busy} onClick={add}>{busy ? 'Saving…' : kind === 'once' ? 'Add event' : 'Add activity'}</button>
         </div>
       )}
     </div>
