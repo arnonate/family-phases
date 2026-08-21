@@ -261,6 +261,24 @@ export default function Dashboard() {
 
       <WeekList arrangements={arrangements} tod={tod} nameForSide={sideName} />
 
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h2>Messages <Link href="/messages" className="sub">see all →</Link></h2>
+        {recentPosts.length === 0 && (
+          <div className="empty">No conversations yet — start one on the Messages page.</div>
+        )}
+        {recentPosts.map(p => (
+          <Link key={p.id} href="/messages" className="todo" style={{ color: 'inherit', display: 'flex' }}>
+            <div style={{ flex: 1 }}>
+              <div className="t-title">{p.title}</div>
+              <div className="t-meta">
+                {p.profiles?.name || p.profiles?.email}
+                {arrangements.length > 1 && <> · {arrName(p.arr)}</>}
+                {p.comments?.length > 0 && <> · {p.comments.length} repl{p.comments.length === 1 ? 'y' : 'ies'}</>}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
       <div className="card">
         <h2>Open to-dos <Link href="/todos" className="sub">see all →</Link></h2>
         {openTodos.length === 0 && <div className="empty">All clear — no open to-dos.</div>}
@@ -281,24 +299,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2>Messages <Link href="/messages" className="sub">see all →</Link></h2>
-        {recentPosts.length === 0 && (
-          <div className="empty">No conversations yet — start one on the Messages page.</div>
-        )}
-        {recentPosts.map(p => (
-          <Link key={p.id} href="/messages" className="todo" style={{ color: 'inherit', display: 'flex' }}>
-            <div style={{ flex: 1 }}>
-              <div className="t-title">{p.title}</div>
-              <div className="t-meta">
-                {p.profiles?.name || p.profiles?.email}
-                {arrangements.length > 1 && <> · {arrName(p.arr)}</>}
-                {p.comments?.length > 0 && <> · {p.comments.length} repl{p.comments.length === 1 ? 'y' : 'ies'}</>}
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
     </>
   );
 }
