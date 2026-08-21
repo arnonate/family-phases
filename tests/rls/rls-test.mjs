@@ -206,6 +206,14 @@ async function main() {
   const { data: cppAfter } = await cpPartner.client.from('arrangements').select('id').eq('id', arrId);
   check("disconnect also cuts the co-parent's partner", (cppAfter || []).length === 0);
 
+  // Account prefs are strictly private
+  await parent.client.from('user_prefs').upsert({ user_id: parent.id, dismissed: ['explainer-messages'] });
+  const { data: otherPrefs } = await coparent.client.from('user_prefs').select('*').eq('user_id', parent.id);
+  check("one user's prefs are invisible to others", (otherPrefs || []).length === 0);
+  const { error: forgeErr } = await coparent.client.from('user_prefs')
+    .upsert({ user_id: parent.id, dismissed: ['hax'] });
+  check("prefs cannot be written for someone else", !!forgeErr);
+
   console.log(failures ? `\n${failures} FAILURE(S)` : '\nALL RLS CHECKS PASSED');
 }
 

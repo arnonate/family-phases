@@ -1093,3 +1093,15 @@ create trigger post_comment_retract after delete on post_comments
   for each row execute function public.trg_retract_notifications();
 
 alter publication supabase_realtime add table posts, post_comments;
+
+-- ============ USER PREFS ============
+-- Account-level UI preferences (dismissed explainers/nudges) so they follow
+-- the person across devices. Strictly private to their owner.
+
+create table user_prefs (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  dismissed text[] not null default '{}'
+);
+alter table user_prefs enable row level security;
+create policy "user prefs self" on user_prefs for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());

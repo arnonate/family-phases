@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import Link from 'next/link';
 import { useStore, sideName, kidSideName, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
@@ -122,8 +121,8 @@ export default function Dashboard() {
   const store = useStore();
   const { arrangements, me } = store;
   const tod = todayStr();
-  const [nameNudgeGone, setNameNudgeGone] = useState(() =>
-    typeof window !== 'undefined' && !!localStorage.getItem('fp-name-nudge'));
+  const nameNudgeGone = store.dismissed?.includes('name-nudge')
+    || (typeof window !== 'undefined' && !!localStorage.getItem('fp-name-nudge'));
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
 
@@ -169,7 +168,7 @@ export default function Dashboard() {
             display name in <Link href="/settings">Settings</Link>.
           </span>
           <button className="btn small subtle" style={{ flex: 'none' }}
-            onClick={() => { try { localStorage.setItem('fp-name-nudge', '1'); } catch {} setNameNudgeGone(true); }}>
+            onClick={() => store.dismiss('name-nudge')}>
             Dismiss
           </button>
         </div>

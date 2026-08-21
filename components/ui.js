@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { arrName } from '@/lib/store';
+import { arrName, useStore } from '@/lib/store';
 
 export function Modal({ title, onClose, children }) {
   useEffect(() => {
@@ -63,19 +63,20 @@ export function StructureHelp() {
   );
 }
 
-// Icon + description card shown atop a page until the user dismisses it
-// (remembered per id in localStorage).
+// Icon + description card shown atop a page until the user dismisses it —
+// remembered on the account (user_prefs), so it stays gone on every device.
+// Old device-local dismissals (localStorage) are still honored.
 export function Explainer({ id, icon, children }) {
-  const key = `fp-explainer-${id}`;
-  const [gone, setGone] = useState(() =>
-    typeof window !== 'undefined' && !!localStorage.getItem(key));
-  if (gone) return null;
+  const store = useStore();
+  const key = `explainer-${id}`;
+  const [legacyGone] = useState(() =>
+    typeof window !== 'undefined' && !!localStorage.getItem(`fp-explainer-${id}`));
+  if (legacyGone || store?.dismissed?.includes(key)) return null;
   return (
     <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
       {icon}
       <p className="muted" style={{ fontSize: 13.5, margin: 0, flex: 1 }}>{children}</p>
-      <button aria-label="Dismiss" className="explainer-x"
-        onClick={() => { try { localStorage.setItem(key, '1'); } catch {} setGone(true); }}>
+      <button aria-label="Dismiss" className="explainer-x" onClick={() => store?.dismiss?.(key)}>
         <X size={16} />
       </button>
     </div>
