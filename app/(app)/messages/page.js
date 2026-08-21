@@ -6,7 +6,7 @@ import { Modal, ArrTabs, useArrSelection, GrowText } from '@/components/ui';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
 import CommentThread from '@/components/CommentThread';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, MessagesSquare } from 'lucide-react';
 
 export default function MessagesPage() {
   const store = useStore();
@@ -37,13 +37,18 @@ export default function MessagesPage() {
   return (
     <>
       <ArrTabs arrangements={arrangements} value={sel} onChange={setSel} allLabel="All" />
+      <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        <MessagesSquare size={28} strokeWidth={1.8} style={{ flex: 'none', marginTop: 2 }} />
+        <p className="muted" style={{ fontSize: 13.5, margin: 0 }}>
+          Messages are for talking things through — trip plans, school decisions, anything
+          that isn&apos;t a to-do. Each conversation belongs to an arrangement, and everyone
+          in both homes can read and reply. Kids never see this page.
+        </p>
+      </div>
       <div className="card">
         <h2>Messages {canPost && <button className="btn small" onClick={() => setShowNew(true)}>+ New conversation</button>}</h2>
         {posts.length === 0 && (
-          <div className="empty">
-            A place to talk things through — trip plans, school decisions, anything that
-            isn&apos;t a to-do. Both homes see the conversations in their arrangement.
-          </div>
+          <div className="empty">No conversations yet{canPost ? ' — start one' : ''}.</div>
         )}
         {posts.map(p => {
           const n = p.comments?.length || 0;
