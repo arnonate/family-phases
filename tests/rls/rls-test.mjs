@@ -176,6 +176,23 @@ async function main() {
   const { data: devCross } = await admin.from('deviations').select('status').eq('id', devId).single();
   check('anyone in the other home can decide', devCross?.status === 'accepted');
 
+  // Message board: adults only — members write, viewers read, children see nothing
+  const postId = randomUUID();
+  const { error: postErr } = await parent.client.from('posts').insert({
+    id: postId, arrangement_id: arrId, title: `rls-post-${run}`, body: 'hello', author: parent.id,
+  });
+  check('member starts a conversation', !postErr, postErr?.message);
+  const { data: vPosts } = await viewer.client.from('posts').select('id').eq('id', postId);
+  check('viewer reads the board', vPosts?.length === 1);
+  const { error: vPost } = await viewer.client.from('post_comments')
+    .insert({ post_id: postId, arrangement_id: arrId, author: viewer.id, body: 'hax' });
+  check('viewer cannot reply', !!vPost);
+  const { data: childPosts } = await child.client.from('posts').select('id').eq('id', postId);
+  check('child cannot see the board', (childPosts || []).length === 0);
+  const { error: cpReply } = await coparent.client.from('post_comments')
+    .insert({ post_id: postId, arrangement_id: arrId, author: coparent.id, body: 'hi from the other home' });
+  check('the other home can reply', !cpReply, cpReply?.message);
+
   // Personal prefs are private
   await parent.client.from('arrangement_prefs').upsert({ arrangement_id: arrId, user_id: parent.id, nickname: 'mine' });
   const { data: cpPrefs } = await coparent.client.from('arrangement_prefs').select('*').eq('arrangement_id', arrId);

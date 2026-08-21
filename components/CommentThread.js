@@ -9,7 +9,7 @@ import { confirmDelete } from '@/components/Confirm';
 // Supabase error or null; `refresh` reloads the store afterwards.
 export default function CommentThread({
   comments = [], meId, onPost, onDelete, refresh,
-  emptyText = 'No comments yet.', controls = null,
+  emptyText = 'No comments yet.', controls = null, readOnly = false,
 }) {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -48,14 +48,14 @@ export default function CommentThread({
         </div>
       ))}
       {!comments.length && <div className="muted" style={{ fontSize: 12.5, padding: '2px 0 6px' }}>{emptyText}</div>}
-      <form className="c-form" onSubmit={post}>
+      {!readOnly && <form className="c-form" onSubmit={post}>
         {controls}
         <GrowText value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…"
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) post(e); }} />
         <button type="submit" className="btn small" disabled={busy || !body.trim()} aria-label="Post comment">
           <SendHorizontal size={14} />
         </button>
-      </form>
+      </form>}
     </div>
   );
 }

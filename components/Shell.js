@@ -13,6 +13,7 @@ import { ConfirmHost } from '@/components/Confirm';
 const NAV = [
   ['/dashboard', 'Dashboard'],
   ['/calendar', 'Calendar'],
+  ['/messages', 'Messages'],
   ['/expenses', 'Expenses'],
   ['/activities', 'Activities'],
   ['/todos', 'To-Dos'],

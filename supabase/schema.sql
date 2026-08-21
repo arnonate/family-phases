@@ -1023,3 +1023,73 @@ end $$;
 -- changes); a value pins this expense's h-side share.
 
 alter table expenses add column split_pct int check (split_pct between 0 and 100);
+
+-- ============ MESSAGE BOARD ============
+-- Adult conversations per arrangement: posts + replies, reusing the comment
+-- machinery. can_access excludes child logins, so this stays adults-only
+-- (members write, read-only viewers read).
+
+create table posts (
+  id uuid primary key default gen_random_uuid(),
+  arrangement_id uuid not null references arrangements on delete cascade,
+  title text not null,
+  body text,
+  author uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+create table post_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references posts on delete cascade,
+  arrangement_id uuid not null references arrangements on delete cascade,
+  author uuid references profiles(id),
+  body text not null,
+  created_at timestamptz default now()
+);
+
+alter table posts enable row level security;
+alter table post_comments enable row level security;
+
+create policy "posts read" on posts for select
+  using (public.can_access_arrangement(arrangement_id));
+create policy "posts write" on posts for insert
+  with check (public.is_arrangement_member(arrangement_id) and author = auth.uid());
+create policy "posts delete own" on posts for delete using (author = auth.uid());
+
+create policy "post comments read" on post_comments for select
+  using (public.can_access_arrangement(arrangement_id));
+create policy "post comments write" on post_comments for insert
+  with check (public.is_arrangement_member(arrangement_id) and author = auth.uid());
+create policy "post comments delete own" on post_comments for delete using (author = auth.uid());
+
+create or replace function public.trg_post_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  select coalesce(name, email) into nm from profiles where id = auth.uid();
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'post',
+    nm || ' started a conversation: "' || new.title || '"' || coalesce(' — ' || left(new.body, 120), ''), new.id);
+  return new;
+end $$;
+create trigger post_notify after insert on posts
+  for each row execute function public.trg_post_notify();
+
+create or replace function public.trg_post_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nm text; t text;
+begin
+  select coalesce(name, email) into nm from profiles where id = auth.uid();
+  select title into t from posts where id = new.post_id;
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'post_comment',
+    nm || ' replied in "' || coalesce(t, 'a conversation') || '": ' || left(new.body, 120), new.id);
+  return new;
+end $$;
+create trigger post_comment_notify after insert on post_comments
+  for each row execute function public.trg_post_comment_notify();
+
+create trigger post_retract after delete on posts
+  for each row execute function public.trg_retract_notifications();
+create trigger post_comment_retract after delete on post_comments
+  for each row execute function public.trg_retract_notifications();
+
+alter publication supabase_realtime add table posts, post_comments;
