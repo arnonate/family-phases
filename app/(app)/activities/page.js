@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { ArrTabs, useArrSelection, KidChecks } from '@/components/ui';
+import { ArrTabs, useArrSelection, KidChecks, Explainer } from '@/components/ui';
 import { fmt } from '@/lib/custody';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
@@ -23,15 +23,12 @@ export default function ActivitiesPage() {
   return (
     <>
       {!child && <ArrTabs arrangements={arrangements} value={sel} onChange={setSel} />}
-      <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        <CalendarClock size={28} strokeWidth={1.8} style={{ flex: 'none', marginTop: 2 }} />
-        <p className="muted" style={{ fontSize: 13.5, margin: 0 }}>
-          Activities are the kids&apos; recurring commitments — soccer practice, piano lessons,
-          summer camp — and one-off events like a game or recital. Each one shows up on the
-          calendar and in day details on the days it happens, alongside whose day it is, so
-          whoever has the kids knows where they need to be. They flow into your iCal feed too.
-        </p>
-      </div>
+      <Explainer id="activities" icon={<CalendarClock size={28} strokeWidth={1.8} style={{ flex: 'none', marginTop: 2 }} />}>
+        Activities are the kids&apos; recurring commitments — soccer practice, piano lessons,
+        summer camp — and one-off events like a game or recital. Each one shows up on the
+        calendar and in day details on the days it happens, alongside whose day it is, so
+        whoever has the kids knows where they need to be. They flow into your iCal feed too.
+      </Explainer>
       <Activities arr={arr} me={me} store={store} canEdit={canEdit} />
     </>
   );
