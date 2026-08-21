@@ -13,7 +13,7 @@ import { ArrowLeftRight } from 'lucide-react';
 function WeekList({ arrangements, tod, nameForSide, actFilter }) {
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <h2>Week at a glance</h2>
+      <h2>Week at a glance <Link href="/calendar" className="sub">Calendar →</Link></h2>
       {[...Array(7)].map((_, i) => {
         const d = addDays(tod, i);
         return (
@@ -82,7 +82,7 @@ function ChildDashboard({ child, tod }) {
         </div>
       </div>
       <div className="card" style={{ marginBottom: 16 }}>
-        <h2>Your next 7 days</h2>
+        <h2>Your next 7 days <Link href="/calendar" className="sub">Calendar →</Link></h2>
         <div className="week-strip">
           {[...Array(7)].map((_, i) => {
             const d = addDays(tod, i);
@@ -103,7 +103,7 @@ function ChildDashboard({ child, tod }) {
         actFilter={act => !act.child_ids?.length || act.child_ids.includes(kid.id)} />
       {myTodos.length > 0 && (
         <div className="card">
-          <h2>Your to-dos</h2>
+          <h2>Your to-dos <Link href="/todos" className="sub">see all →</Link></h2>
           {myTodos.map(t => (
             <div key={t.id} className="todo">
               <div style={{ flex: 1 }}>
@@ -143,6 +143,10 @@ export default function Dashboard() {
 
   const openTodos = arrangements.flatMap(a =>
     a.todos.filter(t => !t.done).map(t => ({ ...t, arr: a }))).slice(0, 8);
+
+  const lastActivity = p => p.comments?.length ? p.comments[p.comments.length - 1].created_at : p.created_at;
+  const recentPosts = arrangements.flatMap(a => (a.posts || []).map(p => ({ ...p, arr: a })))
+    .sort((x, y) => (lastActivity(x) < lastActivity(y) ? 1 : -1)).slice(0, 3);
 
   async function toggleTodo(t) {
     await supa().from('todos').update({ done: !t.done }).eq('id', t.id);
@@ -207,7 +211,7 @@ export default function Dashboard() {
             {arrangements.length > 1 && <h2 style={{ fontSize: 16, margin: '4px 0 10px' }}>{arrName(a)}</h2>}
             <div className="grid cols-3" style={{ marginBottom: 12 }}>
               <div className="card">
-                <h2>Tonight the kids are with</h2>
+                <h2>Tonight the kids are with <Link href="/calendar" className="sub">Calendar →</Link></h2>
                 <div className="stat">
                   {!a.schedule?.anchor_date ? <>—<small>Set the schedule in Settings</small></>
                     : sum === 'mix' ? <>Split<small>Home: {homeKids.map(k => k.name).join(', ') || 'none'}</small></>
@@ -222,7 +226,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="card">
-                <h2>Balance</h2>
+                <h2>Balance <Link href="/expenses" className="sub">Expenses →</Link></h2>
                 <div className={`stat ${Math.abs(bal) < 0.005 ? '' : bal > 0 ? 'neg' : 'pos'}`}>
                   {money(Math.abs(bal))}
                   <small>
@@ -234,7 +238,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="card">
-              <h2>Next 7 days <span className="sub">{fmt(tod, { month: 'short', day: 'numeric' })} – {fmt(addDays(tod, 6), { month: 'short', day: 'numeric' })}</span></h2>
+              <h2>Next 7 days <Link href="/calendar" className="sub">Calendar →</Link></h2>
               <div className="week-strip">
                 {[...Array(7)].map((_, i) => {
                   const d = addDays(tod, i);
@@ -275,6 +279,25 @@ export default function Dashboard() {
             </div>
           );
         })}
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h2>Messages <Link href="/messages" className="sub">see all →</Link></h2>
+        {recentPosts.length === 0 && (
+          <div className="empty">No conversations yet — start one on the Messages page.</div>
+        )}
+        {recentPosts.map(p => (
+          <Link key={p.id} href="/messages" className="todo" style={{ color: 'inherit', display: 'flex' }}>
+            <div style={{ flex: 1 }}>
+              <div className="t-title">{p.title}</div>
+              <div className="t-meta">
+                {p.profiles?.name || p.profiles?.email}
+                {arrangements.length > 1 && <> · {arrName(p.arr)}</>}
+                {p.comments?.length > 0 && <> · {p.comments.length} repl{p.comments.length === 1 ? 'y' : 'ies'}</>}
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
     </>
   );
