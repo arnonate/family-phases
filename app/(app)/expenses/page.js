@@ -4,7 +4,7 @@ import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer, arrName
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
 import { todayStr, fmt, money, balance, expenseSplit, CATS } from '@/lib/custody';
-import { Banknote, Paperclip } from 'lucide-react';
+import { Banknote, Paperclip, Trash2 } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { confirmDelete, confirmAction } from '@/components/Confirm';
 
@@ -162,6 +162,7 @@ export default function ExpensesPage() {
           <div className="exp-cards">
             {rows.map(e => (
               <div key={e.id} className="exp-item">
+                <div className="ei-main">
                 <div className="ei-top">
                   <b>{money(Number(e.amount))}</b>
                   <span className="pill cat">{e.category}</span>
@@ -181,9 +182,10 @@ export default function ExpensesPage() {
                     {' '}· {side === 'h' ? 'my' : `${sideName(arr, 'h')}'s`} share {money(Number(e.amount) * expenseSplit(arr, e))}
                     {e.split_pct != null && <span className="mini" style={{ marginLeft: 4 }}>{e.split_pct}%</span>}
                   </span>
-                  {e.created_by === me.id && e.status !== 'pending' &&
-                    <button className="btn danger small" onClick={() => remove(e)}>✕</button>}
                 </div>
+                </div>
+                {e.created_by === me.id && e.status !== 'pending' &&
+                  <button className="btn danger small" onClick={() => remove(e)}><Trash2 size={15} /></button>}
               </div>
             ))}
           </div>
@@ -210,7 +212,7 @@ export default function ExpensesPage() {
                     {e.split_pct != null && <span className="mini" title={`Custom split: ${e.split_pct}/${100 - e.split_pct}`} style={{ marginLeft: 4 }}>{e.split_pct}%</span>}</td>
                   <td><span className={`pill ${e.status}`}>{e.status}</span></td>
                   <td className="right">{e.created_by === me.id && e.status !== 'pending' &&
-                    <button className="btn danger small" onClick={() => remove(e)}>✕</button>}</td>
+                    <button className="btn danger small" onClick={() => remove(e)}><Trash2 size={15} /></button>}</td>
                 </tr>
               ))}
             </tbody></table>
@@ -227,6 +229,7 @@ export default function ExpensesPage() {
           <div className="exp-cards">
             {arr.settlements.map(p => (
               <div key={p.id} className="exp-item">
+                <div className="ei-main">
                 <div className="ei-top">
                   <b>{money(Number(p.amount))}</b>
                   <span className="pill cat">{p.direction === 'h2c'
@@ -234,10 +237,9 @@ export default function ExpensesPage() {
                     : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</span>
                   <span className="ei-date">{fmt(p.date, { month: 'short', day: 'numeric' })}</span>
                 </div>
-                <div className="ei-meta">
-                  <span>{p.note || ''}</span>
-                  {p.created_by === me.id && <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}
+                {p.note && <div className="ei-meta"><span>{p.note}</span></div>}
                 </div>
+                {p.created_by === me.id && <button className="btn danger small" onClick={() => removeSettle(p)}><Trash2 size={15} /></button>}
               </div>
             ))}
           </div>
@@ -255,7 +257,7 @@ export default function ExpensesPage() {
                   <td className="right">{money(Number(p.amount))}</td>
                   <td className="muted">{p.note}</td>
                   <td className="right">{p.created_by === me.id &&
-                    <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}</td>
+                    <button className="btn danger small" onClick={() => removeSettle(p)}><Trash2 size={15} /></button>}</td>
                 </tr>
               ))}
             </tbody></table>

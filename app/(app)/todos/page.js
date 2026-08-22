@@ -4,7 +4,7 @@ import { useStore, kidName, childIdentity, mySide, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection, GrowText } from '@/components/ui';
 import { todayStr, fmt } from '@/lib/custody';
-import { User, MessageCircle } from 'lucide-react';
+import { User, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
 import { confirmDelete } from '@/components/Confirm';
@@ -113,7 +113,7 @@ export default function TodosPage() {
                 onClick={() => setOpenThread(t.id)}>
                 <MessageCircle size={19} />{n > 0 && <span>{n}</span>}
               </button>
-              {canEdit && <button className="btn danger small" onClick={() => remove(t)}>✕</button>}
+              {canEdit && <button className="btn danger small" onClick={() => remove(t)}><Trash2 size={15} /></button>}
             </div>
           );
         })}

@@ -1,4 +1,5 @@
 'use client';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useStore, sideName, mySide, childIdentity, kidName, identityOf, identityLabel, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
@@ -294,7 +295,7 @@ function Children({ arr, store }) {
               ? <span className="pill approved" title="Has a read-only login">login ✓</span>
               : <button className="btn small subtle" title="Invite a read-only login"
                   onClick={() => { setInviteKid(inviteKid === k.id ? null : k.id); setInviteEmail(''); }}>Invite</button>}
-            <button className="btn danger small" onClick={() => remove(k)}>✕</button>
+            <button className="btn danger small" onClick={() => remove(k)}><Trash2 size={15} /></button>
           </div>
           {inviteKid === k.id && (
             <div className="row" style={{ alignItems: 'center', marginTop: 6, flexWrap: 'nowrap' }}>
@@ -475,7 +476,7 @@ function People({ arr, side, myHouse, me, store }) {
             <span key={v.user_id} style={{ marginRight: 8 }}>
               {v.profiles?.name || v.profiles?.email}
               <button className="btn danger small" style={{ marginLeft: 4, padding: '1px 6px' }}
-                onClick={() => removeViewer(v)}>✕</button>
+                onClick={() => removeViewer(v)}><Trash2 size={15} /></button>
             </span>
           ))}
         </p>
@@ -509,7 +510,7 @@ function People({ arr, side, myHouse, me, store }) {
             <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 13.5 }}>
               <span style={{ flex: 1 }}>{i.email} <span className="muted">— {inviteDesc(i)}</span></span>
               <button className="btn danger small" style={{ flex: 'none' }} title="Revoke invite"
-                onClick={() => revokeInvite(i)}>✕</button>
+                onClick={() => revokeInvite(i)}><Trash2 size={15} /></button>
             </div>
           ))}
         </div>

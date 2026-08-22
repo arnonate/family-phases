@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { X, SendHorizontal } from 'lucide-react';
+import { SendHorizontal, Trash2 } from 'lucide-react';
 import { GrowText } from '@/components/ui';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
@@ -41,7 +41,7 @@ export default function CommentThread({
             {c.tag && <span className="mini">{c.tag}</span>}
             <span>{when(c.created_at)}</span>
             {c.author === meId && (
-              <button aria-label="Delete comment" onClick={() => del(c)}><X size={12} /></button>
+              <button aria-label="Delete comment" onClick={() => del(c)}><Trash2 size={12} /></button>
             )}
           </div>
           <div className="c-body">{c.body}</div>

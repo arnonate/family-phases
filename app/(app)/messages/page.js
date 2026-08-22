@@ -6,7 +6,7 @@ import { Modal, ArrTabs, useArrSelection, GrowText, Explainer } from '@/componen
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
 import CommentThread from '@/components/CommentThread';
-import { MessageCircle, MessagesSquare } from 'lucide-react';
+import { MessageCircle, MessagesSquare, Trash2 } from 'lucide-react';
 
 export default function MessagesPage() {
   const store = useStore();
@@ -65,7 +65,7 @@ export default function MessagesPage() {
                 <MessageCircle size={19} />{n > 0 && <span>{n}</span>}
               </button>
               {p.author === me.id && (
-                <button className="btn danger small" onClick={e => { e.stopPropagation(); removePost(p); }}>✕</button>
+                <button className="btn danger small" onClick={e => { e.stopPropagation(); removePost(p); }}><Trash2 size={15} /></button>
               )}
             </div>
           );

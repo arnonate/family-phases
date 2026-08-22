@@ -6,7 +6,7 @@ import { ArrTabs, useArrSelection, KidChecks, Explainer } from '@/components/ui'
 import { fmt } from '@/lib/custody';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Trash2 } from 'lucide-react';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -96,7 +96,7 @@ function Activities({ arr, me, store, canEdit }) {
               {act.child_ids?.length > 0 && <> · {act.child_ids.map(id => kidName(arr, id)).join(', ')}</>}
             </div>
           </div>
-          {canEdit && <button className="btn danger small" onClick={() => remove(act)}>✕</button>}
+          {canEdit && <button className="btn danger small" onClick={() => remove(act)}><Trash2 size={15} /></button>}
         </div>
       ))}
       {showAdd && (
