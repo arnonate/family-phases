@@ -355,9 +355,9 @@ function AddExpense({ arr, me, store, onClose }) {
       </div>
       <p className="muted" style={{ fontSize: 12.5 }}>
         {sideName(arr, 'h')} covers <b>{hPct}%</b>, {sideName(arr, 'c')} covers {100 - hPct}%.
-        {otherOwes != null && <> {sideName(arr, paidBy === 'h' ? 'c' : 'h')} owes <b>{money(otherOwes)}</b> of this.</>}
+        {otherOwes > 0 && <> {sideName(arr, paidBy === 'h' ? 'c' : 'h')} owes <b>{money(otherOwes)}</b> of this.</>}
+        {otherOwes === 0 && <> <b>This won&apos;t change the balance</b> — {sideName(arr, paidBy)} covers it fully and nobody owes anything. To record money paid to the other home, use &ldquo;Record payment&rdquo; instead.</>}
         {needsApproval && <> This is over {money(Number(arr.approval_threshold))}, so it needs the other parent&apos;s approval before it counts toward the balance.</>}
-        {otherPartyJoined && amt > Number(arr.approval_threshold) && !(otherOwes > 0) && <> No approval needed — nobody else owes anything on this.</>}
       </p>
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Cancel</button>
