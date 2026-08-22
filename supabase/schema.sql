@@ -1199,3 +1199,12 @@ begin
     public.actor_name() || ' replied in "' || coalesce(t, 'a conversation') || '": ' || left(new.body, 120), new.id);
   return new;
 end $$;
+
+-- ============ SUPPORT & MAINTENANCE ============
+-- A standing obligation (child support / maintenance) configured on the
+-- arrangement; the daily cron materializes an approved ledger line on each
+-- due day, owed in full by the paying side. Settled via ordinary payments.
+
+alter table arrangements add column support_amount numeric check (support_amount > 0);
+alter table arrangements add column support_from text check (support_from in ('h','c'));
+alter table arrangements add column support_days int[] not null default '{}';

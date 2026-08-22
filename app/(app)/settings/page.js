@@ -150,15 +150,28 @@ function General({ arr, store }) {
   const [split, setSplit] = useState(arr.split_pct);
   const [threshold, setThreshold] = useState(Number(arr.approval_threshold));
   const [time, setTime] = useState(arr.transfer_time || '');
+  const [supAmount, setSupAmount] = useState(arr.support_amount ? Number(arr.support_amount) : '');
+  const [supFrom, setSupFrom] = useState(arr.support_from || '');
+  const [supDays, setSupDays] = useState((arr.support_days || []).join(', '));
   const [busy, setBusy] = useState(false);
 
   const dirty = cLabel !== (arr.c_label || '')
     || kidC !== (arr.kid_c_label || '')
     || +split !== arr.split_pct
     || +threshold !== Number(arr.approval_threshold)
-    || time !== (arr.transfer_time || '');
+    || time !== (arr.transfer_time || '')
+    || String(supAmount) !== String(arr.support_amount ? Number(arr.support_amount) : '')
+    || supFrom !== (arr.support_from || '')
+    || supDays !== (arr.support_days || []).join(', ');
 
   async function save() {
+    const days = supDays.split(/[\s,]+/).filter(Boolean).map(Number);
+    if (supAmount && (!supFrom || !days.length)) {
+      toast.error('Support needs who pays and at least one day of the month.'); return;
+    }
+    if (days.some(d => !Number.isInteger(d) || d < 1 || d > 28)) {
+      toast.error('Support days must be between 1 and 28 so every month has them.'); return;
+    }
     setBusy(true);
     const { error } = await supa().from('arrangements').update({
       c_label: cLabel.trim() || null,
@@ -166,6 +179,9 @@ function General({ arr, store }) {
       split_pct: Math.min(100, Math.max(0, +split || 0)),
       approval_threshold: Math.max(0, +threshold || 0),
       transfer_time: time || null,
+      support_amount: supAmount ? +supAmount : null,
+      support_from: supAmount ? supFrom : null,
+      support_days: supAmount ? days : [],
     }).eq('id', arr.id);
     if (error) toast.error(`Couldn't save: ${error.message}`);
     await store.refresh();
@@ -191,6 +207,24 @@ function General({ arr, store }) {
       </div>
       <div className="field"><label>Usual transfer time</label>
         <input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 6:00 PM" /></div>
+      <div className="field" style={{ marginTop: 16 }}><label>Support &amp; maintenance (optional)</label>
+        <p className="muted" style={{ fontSize: 12.5, marginBottom: 6 }}>
+          A standing amount owed on set days each month. It lands in the expense
+          ledger automatically, adds to the payer&apos;s balance, and is settled
+          with &ldquo;Record payment&rdquo;.
+        </p>
+        <div className="row">
+          <UnitInput unit="USD" type="number" min="0" step="0.01" value={supAmount}
+            onChange={e => setSupAmount(e.target.value)} placeholder="amount per due day" />
+          <select value={supFrom} onChange={e => setSupFrom(e.target.value)}>
+            <option value="">Who pays?</option>
+            <option value="h">{sideName(arr, 'h')} pays {sideName(arr, 'c')}</option>
+            <option value="c">{sideName(arr, 'c')} pays {sideName(arr, 'h')}</option>
+          </select>
+          <input value={supDays} onChange={e => setSupDays(e.target.value)}
+            placeholder="days, e.g. 1, 15" />
+        </div>
+      </div>
       <button className="btn" disabled={busy || !dirty} onClick={save}>
         {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
       </button>

@@ -8,7 +8,11 @@ export async function GET(request, { params }) {
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
+    {
+      auth: { persistSession: false },
+      // Next caches GET fetches in route handlers; live data must bypass it
+      global: { fetch: (url, opts) => fetch(url, { ...opts, cache: 'no-store' }) },
+    }
   );
 
   const { data: profile } = await admin.from('profiles')

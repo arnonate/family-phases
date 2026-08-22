@@ -23,7 +23,7 @@ export default function ExpensesPage() {
   const nowM = todayStr().slice(0, 7);
   const months = [...new Set(arr.expenses.map(e => e.date.slice(0, 7)))].sort().reverse();
   const rows = arr.expenses.filter(e => monthFilter === 'all' || e.date.startsWith(monthFilter));
-  const mExp = arr.expenses.filter(e => e.date.startsWith(nowM) && e.status === 'approved');
+  const mExp = arr.expenses.filter(e => e.date.startsWith(nowM) && e.status === 'approved' && e.category !== 'Support & Maintenance');
   const mTot = mExp.reduce((s, e) => s + Number(e.amount), 0);
   const pending = arr.expenses.filter(e => e.status === 'pending');
 
@@ -67,7 +67,7 @@ export default function ExpensesPage() {
       ...arr.expenses.filter(e => e.status === 'approved').map(e => ({
         date: e.date, kind: 'Expense', category: e.category,
         description: e.description || '', children: (e.child_ids || []).map(id => kidName(arr, id)).join('; '),
-        amount: Number(e.amount), paid_by: sideName(arr, e.paid_by),
+        amount: Number(e.amount), paid_by: (e.category === 'Support & Maintenance' ? 'owed to ' : '') + sideName(arr, e.paid_by),
         // effect on "household owes co-parent" balance
         share: Number(e.amount) * expenseSplit(arr, e),
         delta: e.paid_by === 'c'
@@ -176,7 +176,7 @@ export default function ExpensesPage() {
                 )}
                 <div className="ei-meta">
                   <span>
-                    paid by {sideName(arr, e.paid_by)}
+                    {e.category === 'Support & Maintenance' ? 'owed to' : 'paid by'} {sideName(arr, e.paid_by)}
                     {(e.child_ids || []).length > 0 && <> · {e.child_ids.map(id => kidName(arr, id)).join(', ')}</>}
                     {' '}· {side === 'h' ? 'my' : `${sideName(arr, 'h')}'s`} share {money(Number(e.amount) * expenseSplit(arr, e))}
                     {e.split_pct != null && <span className="mini" style={{ marginLeft: 4 }}>{e.split_pct}%</span>}
@@ -203,7 +203,9 @@ export default function ExpensesPage() {
                     {e.decision_note && <span className="muted"> · {e.status}: {e.decision_note}</span>}
                     {e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}</td>
                   <td className="right">{money(Number(e.amount))}</td>
-                  <td><span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span></td>
+                  <td>{e.category === 'Support & Maintenance'
+                    ? <span className="pill cat">owed to {sideName(arr, e.paid_by)}</span>
+                    : <span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span>}</td>
                   <td className="right">{money(Number(e.amount) * expenseSplit(arr, e))}
                     {e.split_pct != null && <span className="mini" title={`Custom split: ${e.split_pct}/${100 - e.split_pct}`} style={{ marginLeft: 4 }}>{e.split_pct}%</span>}</td>
                   <td><span className={`pill ${e.status}`}>{e.status}</span></td>
