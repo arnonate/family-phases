@@ -207,23 +207,27 @@ function General({ arr, store }) {
       </div>
       <div className="field"><label>Usual transfer time</label>
         <input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 6:00 PM" /></div>
-      <div className="field" style={{ marginTop: 16 }}><label>Support &amp; maintenance (optional)</label>
-        <p className="muted" style={{ fontSize: 12.5, marginBottom: 6 }}>
+      <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+        <label>Support &amp; maintenance (optional)</label>
+        <p className="muted" style={{ fontSize: 12.5, margin: '2px 0 10px' }}>
           A standing amount owed on set days each month. It lands in the expense
           ledger automatically, adds to the payer&apos;s balance, and is settled
           with &ldquo;Record payment&rdquo;.
         </p>
         <div className="row">
-          <UnitInput unit="USD" type="number" min="0" step="0.01" value={supAmount}
-            onChange={e => setSupAmount(e.target.value)} placeholder="amount per due day" />
-          <select value={supFrom} onChange={e => setSupFrom(e.target.value)}>
-            <option value="">Who pays?</option>
-            <option value="h">{sideName(arr, 'h')} pays {sideName(arr, 'c')}</option>
-            <option value="c">{sideName(arr, 'c')} pays {sideName(arr, 'h')}</option>
-          </select>
-          <input value={supDays} onChange={e => setSupDays(e.target.value)}
-            placeholder="days, e.g. 1, 15" />
+          <div className="field"><label>Amount per due day</label>
+            <UnitInput unit="USD" type="number" min="0" step="0.01" value={supAmount}
+              onChange={e => setSupAmount(e.target.value)} placeholder="0.00" /></div>
+          <div className="field"><label>Who pays</label>
+            <select value={supFrom} onChange={e => setSupFrom(e.target.value)}>
+              <option value="">Not set</option>
+              <option value="h">{sideName(arr, 'h')} pays {sideName(arr, 'c')}</option>
+              <option value="c">{sideName(arr, 'c')} pays {sideName(arr, 'h')}</option>
+            </select></div>
         </div>
+        <div className="field"><label>Days of the month (1–28)</label>
+          <input value={supDays} onChange={e => setSupDays(e.target.value)}
+            placeholder="e.g. 1, 15" /></div>
       </div>
       <button className="btn" disabled={busy || !dirty} onClick={save}>
         {busy ? 'Saving…' : dirty ? 'Save' : 'Saved ✓'}
