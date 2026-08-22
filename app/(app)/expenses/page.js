@@ -234,7 +234,7 @@ export default function ExpensesPage() {
                 </div>
                 <div className="ei-meta">
                   <span>{p.note || ''}</span>
-                  {side && <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}
+                  {p.created_by === me.id && <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}
                 </div>
               </div>
             ))}
@@ -252,7 +252,7 @@ export default function ExpensesPage() {
                     : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</td>
                   <td className="right">{money(Number(p.amount))}</td>
                   <td className="muted">{p.note}</td>
-                  <td className="right">{side &&
+                  <td className="right">{p.created_by === me.id &&
                     <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}</td>
                 </tr>
               ))}
