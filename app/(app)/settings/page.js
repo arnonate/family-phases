@@ -160,9 +160,9 @@ function General({ arr, store }) {
     || +split !== arr.split_pct
     || +threshold !== Number(arr.approval_threshold)
     || time !== (arr.transfer_time || '')
-    || String(supAmount) !== String(arr.support_amount ? Number(arr.support_amount) : '')
+    || Number(supAmount || 0) !== Number(arr.support_amount || 0)
     || supFrom !== (arr.support_from || '')
-    || supDays !== (arr.support_days || []).join(', ');
+    || supDays.split(/[\s,]+/).filter(Boolean).join(',') !== (arr.support_days || []).join(',');
 
   async function save() {
     const days = supDays.split(/[\s,]+/).filter(Boolean).map(Number);
@@ -184,6 +184,12 @@ function General({ arr, store }) {
       support_days: supAmount ? days : [],
     }).eq('id', arr.id);
     if (error) toast.error(`Couldn't save: ${error.message}`);
+    else {
+      // snap fields to canonical form so the dirty check settles
+      setSupDays(supAmount ? days.join(', ') : '');
+      setSupAmount(supAmount ? String(+supAmount) : '');
+      if (!supAmount) setSupFrom('');
+    }
     await store.refresh();
     setBusy(false);
   }
