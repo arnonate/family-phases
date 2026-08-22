@@ -1113,3 +1113,89 @@ create policy "user prefs self" on user_prefs for all
 drop policy "settlements delete" on settlements;
 create policy "settlements delete" on settlements for delete
   using (public.is_arrangement_member(arrangement_id));
+
+-- ============ NOTIFY WITHOUT AUTH CONTEXT ============
+-- Direct SQL/table-editor edits run with auth.uid() null, which made the
+-- notify triggers build a null message and abort the write. The actor name
+-- now falls back to "Someone" so admin edits behave.
+
+-- With no actor, nobody's row is pre-marked read (coalesce keeps the
+-- not-null "read" flag happy on admin edits).
+create or replace function public.notify_arrangement(aid uuid, actor uuid, ntype text, msg text, ref uuid default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  insert into notifications (user_id, arrangement_id, type, message, read, ref_id)
+  select distinct hm.user_id, aid, ntype, msg, coalesce(hm.user_id = actor, false), ref
+  from arrangements a
+  join household_members hm on hm.household_id in (a.h_household_id, a.c_household_id)
+  where a.id = aid;
+end $$;
+
+create or replace function public.actor_name()
+returns text language sql security definer stable set search_path = public as $$
+  select coalesce((select coalesce(name, email) from profiles where id = auth.uid()), 'Someone');
+$$;
+
+create or replace function public.trg_expense_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' and new.status = 'pending' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'expense_pending',
+      public.actor_name() || ' added a $' || round(new.amount,2) || ' expense that needs approval: ' || coalesce(new.description, new.category), new.id);
+  elsif tg_op = 'UPDATE' and old.status = 'pending' and new.status <> 'pending' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'expense_' || new.status,
+      public.actor_name() || ' ' || new.status || ' the $' || round(new.amount,2) || ' expense: ' || coalesce(new.description, new.category)
+        || coalesce(' — "' || nullif(new.decision_note, '') || '"', ''), new.id);
+  end if;
+  return new;
+end $$;
+
+create or replace function public.trg_deviation_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' and new.status = 'proposed' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'deviation_proposed',
+      public.actor_name() || ' proposed a schedule change ' || new.start_date || ' to ' || new.end_date || coalesce(': ' || new.note, ''), new.id);
+  elsif tg_op = 'UPDATE' and old.status = 'proposed' and new.status <> 'proposed' then
+    perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'deviation_' || new.status,
+      public.actor_name() || ' ' || new.status || ' the schedule change for ' || new.start_date || ' to ' || new.end_date
+        || coalesce(' — "' || nullif(new.decision_note, '') || '"', ''), new.id);
+  end if;
+  return new;
+end $$;
+
+create or replace function public.trg_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare t text;
+begin
+  select title into t from todos where id = new.todo_id;
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'todo_comment',
+    public.actor_name() || ' commented on "' || coalesce(t, 'a to-do') || '": ' || left(new.body, 120), new.id);
+  return new;
+end $$;
+
+create or replace function public.trg_day_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'day_comment',
+    public.actor_name() || ' commented on ' || to_char(new.date, 'Mon FMDD') || ': ' || left(new.body, 120), new.id);
+  return new;
+end $$;
+
+create or replace function public.trg_post_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'post',
+    public.actor_name() || ' started a conversation: "' || new.title || '"' || coalesce(' — ' || left(new.body, 120), ''), new.id);
+  return new;
+end $$;
+
+create or replace function public.trg_post_comment_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare t text;
+begin
+  select title into t from posts where id = new.post_id;
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'post_comment',
+    public.actor_name() || ' replied in "' || coalesce(t, 'a conversation') || '": ' || left(new.body, 120), new.id);
+  return new;
+end $$;
