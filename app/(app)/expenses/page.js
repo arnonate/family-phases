@@ -51,6 +51,7 @@ export default function ExpensesPage() {
   }
   async function removeSettle(p) {
     if (!(await confirmDelete(`Delete this ${money(Number(p.amount))} payment? The balance will change accordingly.`))) return;
+
     const { error } = await supa().from('settlements').delete().eq('id', p.id);
     if (error) toast.error(`Couldn't delete: ${error.message}`);
     store.refresh();
@@ -219,22 +220,44 @@ export default function ExpensesPage() {
         <h2>Payments / settlements
           {side && <button className="btn small" onClick={() => setShowSettle(true)}>+ Record payment</button>}
         </h2>
-        {arr.settlements.length === 0 ? <div className="empty">No payments recorded yet.</div> : (
-          <table><tbody>
-            <tr><th>Date</th><th>Payment</th><th className="right">Amount</th><th>Note</th><th></th></tr>
+        {arr.settlements.length === 0 && <div className="empty">No payments recorded yet.</div>}
+        {arr.settlements.length > 0 && (
+          <div className="exp-cards">
             {arr.settlements.map(p => (
-              <tr key={p.id}>
-                <td>{fmt(p.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
-                <td>{p.direction === 'h2c'
-                  ? `${sideName(arr, 'h')} → ${sideName(arr, 'c')}`
-                  : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</td>
-                <td className="right">{money(Number(p.amount))}</td>
-                <td className="muted">{p.note}</td>
-                <td className="right">{p.created_by === me.id &&
-                  <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}</td>
-              </tr>
+              <div key={p.id} className="exp-item">
+                <div className="ei-top">
+                  <b>{money(Number(p.amount))}</b>
+                  <span className="pill cat">{p.direction === 'h2c'
+                    ? `${sideName(arr, 'h')} → ${sideName(arr, 'c')}`
+                    : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</span>
+                  <span className="ei-date">{fmt(p.date, { month: 'short', day: 'numeric' })}</span>
+                </div>
+                <div className="ei-meta">
+                  <span>{p.note || ''}</span>
+                  {side && <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}
+                </div>
+              </div>
             ))}
-          </tbody></table>
+          </div>
+        )}
+        {arr.settlements.length > 0 && (
+          <div className="exp-table" style={{ overflowX: 'auto' }}>
+            <table><tbody>
+              <tr><th>Date</th><th>Payment</th><th className="right">Amount</th><th>Note</th><th></th></tr>
+              {arr.settlements.map(p => (
+                <tr key={p.id}>
+                  <td>{fmt(p.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
+                  <td>{p.direction === 'h2c'
+                    ? `${sideName(arr, 'h')} → ${sideName(arr, 'c')}`
+                    : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</td>
+                  <td className="right">{money(Number(p.amount))}</td>
+                  <td className="muted">{p.note}</td>
+                  <td className="right">{side &&
+                    <button className="btn danger small" onClick={() => removeSettle(p)}>✕</button>}</td>
+                </tr>
+              ))}
+            </tbody></table>
+          </div>
         )}
       </div>
 
@@ -259,7 +282,6 @@ function AddExpense({ arr, me, store, onClose }) {
 
   const otherPartyJoined = bothSidesJoined(arr);
   const amt = parseFloat(amount);
-  const needsApproval = otherPartyJoined && amt > Number(arr.approval_threshold);
 
   // Resolve the choice to an h-side share; null = arrangement default.
   const splitOverride =
@@ -271,6 +293,9 @@ function AddExpense({ arr, me, store, onClose }) {
   const hPct = splitOverride ?? arr.split_pct;
   const otherOwes = !(amt > 0) ? null
     : paidBy === 'h' ? amt * (100 - hPct) / 100 : amt * hPct / 100;
+  // Approval protects whoever ends up owing; an expense the payer fully
+  // covers burdens nobody, so it never needs sign-off.
+  const needsApproval = otherPartyJoined && amt > Number(arr.approval_threshold) && otherOwes > 0;
 
   async function submit() {
     if (!date || !(amt > 0)) { toast.error('Enter a date and a positive amount.'); return; }
@@ -332,6 +357,7 @@ function AddExpense({ arr, me, store, onClose }) {
         {sideName(arr, 'h')} covers <b>{hPct}%</b>, {sideName(arr, 'c')} covers {100 - hPct}%.
         {otherOwes != null && <> {sideName(arr, paidBy === 'h' ? 'c' : 'h')} owes <b>{money(otherOwes)}</b> of this.</>}
         {needsApproval && <> This is over {money(Number(arr.approval_threshold))}, so it needs the other parent&apos;s approval before it counts toward the balance.</>}
+        {otherPartyJoined && amt > Number(arr.approval_threshold) && !(otherOwes > 0) && <> No approval needed — nobody else owes anything on this.</>}
       </p>
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Cancel</button>

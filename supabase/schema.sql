@@ -1105,3 +1105,11 @@ create table user_prefs (
 alter table user_prefs enable row level security;
 create policy "user prefs self" on user_prefs for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ============ PAYMENT DELETION ============
+-- Either home may delete a mistaken payment, not just whoever recorded it
+-- (payments aren't approval-gated on entry, so deletion is symmetric too).
+
+drop policy "settlements delete" on settlements;
+create policy "settlements delete" on settlements for delete
+  using (public.is_arrangement_member(arrangement_id));

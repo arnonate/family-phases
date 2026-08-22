@@ -164,6 +164,18 @@ async function main() {
   const { data: pendAfter } = await admin.from('expenses').select('id').eq('id', pend.id);
   check('pending expenses cannot be deleted, even by creator', pendAfter?.length === 1);
 
+  // Payments: either home may delete a mistake; viewers may not
+  const setId = randomUUID();
+  await parent.client.from('settlements').insert({
+    id: setId, arrangement_id: arrId, date: '2026-01-20', amount: 50, direction: 'h2c', created_by: parent.id,
+  });
+  await viewer.client.from('settlements').delete().eq('id', setId);
+  const { data: stillSet } = await admin.from('settlements').select('id').eq('id', setId);
+  check('viewer cannot delete a payment', stillSet?.length === 1);
+  await coparent.client.from('settlements').delete().eq('id', setId);
+  const { data: setAfter } = await admin.from('settlements').select('id').eq('id', setId);
+  check("the other home can delete a mistaken payment", (setAfter || []).length === 0);
+
   // Approvals must come from the other home
   const devId = randomUUID();
   await parent.client.from('deviations').insert({
