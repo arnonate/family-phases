@@ -105,7 +105,7 @@ export default function Shell({ children }) {
           {store.notifications.map(n => (
             <div key={n.id} className={`notif ${n.read ? '' : 'unread'}`}>
               {n.message}
-              <div className="when">{new Date(n.created_at).toLocaleString()}</div>
+              <div className="when">{new Date(n.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
             </div>
           ))}
         </div>
