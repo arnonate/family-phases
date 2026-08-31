@@ -8,6 +8,15 @@ import { confirmDelete } from '@/components/Confirm';
 import CommentThread from '@/components/CommentThread';
 import { MessageCircle, MessagesSquare, Trash2 } from 'lucide-react';
 
+// Fire-and-forget instant email; the bell and digest cover any failure.
+function emailMessage(arrangementId, title, body, kind) {
+  fetch('/api/notify-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ arrangementId, title, body, kind }),
+  }).catch(() => {});
+}
+
 export default function MessagesPage() {
   const store = useStore();
   const { arrangements, me } = store;
@@ -88,9 +97,13 @@ export default function MessagesPage() {
               refresh={store.refresh}
               readOnly={readOnly}
               emptyText="No replies yet."
-              onPost={async body => (await supa().from('post_comments').insert({
-                post_id: p.id, arrangement_id: p.arr.id, author: me.id, body,
-              })).error}
+              onPost={async body => {
+                const { error } = await supa().from('post_comments').insert({
+                  post_id: p.id, arrangement_id: p.arr.id, author: me.id, body,
+                });
+                if (!error) emailMessage(p.arr.id, p.title, body, 'reply');
+                return error;
+              }}
               onDelete={async c => (await supa().from('post_comments').delete().eq('id', c.id)).error}
             />
             <div className="actions">
@@ -122,6 +135,7 @@ function NewPost({ arrangements, defaultArr, me, store, onClose, onOpen }) {
     });
     setBusy(false);
     if (error) { toast.error(`Couldn't post: ${error.message}`); return; }
+    emailMessage(arrId, title.trim(), body.trim() || null, 'post');
     await store.refresh();
     onClose();
     onOpen(id);
