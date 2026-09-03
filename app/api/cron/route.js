@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 // 1. Materialize support & maintenance obligations due today.
 // 2. Email one digest per user of their un-emailed notifications, prefixed
 //    with today's custody schedule. No-op unless RESEND_API_KEY is set.
+// 3. Prune read notifications beyond the 10 newest per user (only ones the
+//    digest has already covered, so nothing vanishes before it's emailed).
 export async function GET(request) {
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -129,5 +131,19 @@ export async function GET(request) {
   if (skipIds.length) {
     await admin.from('notifications').update({ emailed: true }).in('id', skipIds);
   }
-  return Response.json({ ok: true, supportAdded, sent });
+
+  // ---- 3. prune old read notifications ----
+  const { data: readRows } = await admin.from('notifications')
+    .select('id, user_id').eq('read', true).eq('emailed', true)
+    .order('created_at', { ascending: false });
+  const kept = new Map();
+  const prune = [];
+  for (const n of readRows || []) {
+    const c = kept.get(n.user_id) || 0;
+    if (c >= 10) prune.push(n.id);
+    else kept.set(n.user_id, c + 1);
+  }
+  if (prune.length) await admin.from('notifications').delete().in('id', prune);
+
+  return Response.json({ ok: true, supportAdded, sent, pruned: prune.length });
 }
