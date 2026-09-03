@@ -212,6 +212,7 @@ tr:last-child td{border-bottom:none}
 .c-form{display:flex;gap:6px;margin-top:8px;align-items:flex-end}
 .c-form input,.c-form textarea{font-size:13.5px;padding:7px 10px}
 .exp-actions{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px}
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;font-size:13px}
 .exp-cards{display:none}
 .c-form .btn{flex:none;display:inline-flex;align-items:center}
 .notif-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-size:14px}

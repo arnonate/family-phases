@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
@@ -8,6 +8,22 @@ import { Banknote, Paperclip, Trash2 } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { confirmDelete, confirmAction } from '@/components/Confirm';
 
+const PAGE = 10;
+
+function Pager({ page, setPage, total }) {
+  if (total <= PAGE) return null;
+  const pages = Math.ceil(total / PAGE);
+  const from = page * PAGE + 1;
+  const to = Math.min(total, (page + 1) * PAGE);
+  return (
+    <div className="pager">
+      <button className="btn small subtle" disabled={page === 0} onClick={() => setPage(page - 1)}>‹ Prev</button>
+      <span className="muted">{from}–{to} of {total}</span>
+      <button className="btn small subtle" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next ›</button>
+    </div>
+  );
+}
+
 export default function ExpensesPage() {
   const store = useStore();
   const { arrangements, me } = store;
@@ -15,6 +31,9 @@ export default function ExpensesPage() {
   const [monthFilter, setMonthFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [showSettle, setShowSettle] = useState(false);
+  const [expPage, setExpPage] = useState(0);
+  const [payPage, setPayPage] = useState(0);
+  useEffect(() => { setExpPage(0); setPayPage(0); }, [sel, monthFilter]);
 
   if (!arrangements.length) return <div className="empty">No arrangements yet.</div>;
   const arr = arrangements.find(a => a.id === sel) || arrangements[0];
@@ -22,7 +41,12 @@ export default function ExpensesPage() {
   const bal = balance(arr, arr.expenses, arr.settlements);
   const nowM = todayStr().slice(0, 7);
   const months = [...new Set(arr.expenses.map(e => e.date.slice(0, 7)))].sort().reverse();
-  const rows = arr.expenses.filter(e => monthFilter === 'all' || e.date.startsWith(monthFilter));
+  const allRows = arr.expenses.filter(e => monthFilter === 'all' || e.date.startsWith(monthFilter));
+  // clamp so deletions can't strand the view on an empty page
+  const ePage = Math.min(expPage, Math.max(0, Math.ceil(allRows.length / PAGE) - 1));
+  const pPage = Math.min(payPage, Math.max(0, Math.ceil(arr.settlements.length / PAGE) - 1));
+  const rows = allRows.slice(ePage * PAGE, (ePage + 1) * PAGE);
+  const payRows = arr.settlements.slice(pPage * PAGE, (pPage + 1) * PAGE);
   const mExp = arr.expenses.filter(e => e.date.startsWith(nowM) && e.status === 'approved' && e.category !== 'Support & Maintenance');
   const mTot = mExp.reduce((s, e) => s + Number(e.amount), 0);
   const pending = arr.expenses.filter(e => e.status === 'pending');
@@ -157,7 +181,7 @@ export default function ExpensesPage() {
           <button className="btn small subtle" onClick={exportLedger}>Export ledger (CSV)</button>
           {side && <button className="btn small" onClick={() => setShowAdd(true)}>+ Add expense</button>}
         </div>
-        {rows.length === 0 && <div className="empty">No expenses{monthFilter !== 'all' ? ' this month' : ' yet'}.</div>}
+        {allRows.length === 0 && <div className="empty">No expenses{monthFilter !== 'all' ? ' this month' : ' yet'}.</div>}
         {rows.length > 0 && (
           <div className="exp-cards">
             {rows.map(e => (
@@ -218,6 +242,7 @@ export default function ExpensesPage() {
             </tbody></table>
           )}
         </div>
+        <Pager page={ePage} setPage={setExpPage} total={allRows.length} />
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
@@ -227,7 +252,7 @@ export default function ExpensesPage() {
         {arr.settlements.length === 0 && <div className="empty">No payments recorded yet.</div>}
         {arr.settlements.length > 0 && (
           <div className="exp-cards">
-            {arr.settlements.map(p => (
+            {payRows.map(p => (
               <div key={p.id} className="exp-item">
                 <div className="ei-main">
                 <div className="ei-top">
@@ -248,7 +273,7 @@ export default function ExpensesPage() {
           <div className="exp-table" style={{ overflowX: 'auto' }}>
             <table><tbody>
               <tr><th>Date</th><th>Payment</th><th className="right">Amount</th><th>Note</th><th></th></tr>
-              {arr.settlements.map(p => (
+              {payRows.map(p => (
                 <tr key={p.id}>
                   <td>{fmt(p.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
                   <td>{p.direction === 'h2c'
@@ -263,6 +288,7 @@ export default function ExpensesPage() {
             </tbody></table>
           </div>
         )}
+        <Pager page={pPage} setPage={setPayPage} total={arr.settlements.length} />
       </div>
 
       {showAdd && <AddExpense arr={arr} me={me} store={store} onClose={() => setShowAdd(false)} />}
