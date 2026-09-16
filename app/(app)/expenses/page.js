@@ -10,6 +10,9 @@ import { confirmDelete, confirmAction } from '@/components/Confirm';
 
 const PAGE = 10;
 
+// Pill-friendly category label (the ledger row already says what it is)
+const catLabel = c => c === 'Support & Maintenance' ? 'Support' : c;
+
 function Pager({ page, setPage, total }) {
   if (total <= PAGE) return null;
   const pages = Math.ceil(total / PAGE);
@@ -189,7 +192,7 @@ export default function ExpensesPage() {
                 <div className="ei-main">
                 <div className="ei-top">
                   <b>{money(Number(e.amount))}</b>
-                  <span className="pill cat">{e.category}</span>
+                  <span className="pill cat">{catLabel(e.category)}</span>
                   <span className={`pill ${e.status}`}>{e.status}</span>
                   <span className="ei-date">{fmt(e.date, { month: 'short', day: 'numeric' })}</span>
                 </div>
@@ -224,7 +227,7 @@ export default function ExpensesPage() {
                 <tr key={e.id}>
                   <td>{fmt(e.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
                   <td>{(e.child_ids || []).map(id => kidName(arr, id)).join(', ') || '—'}</td>
-                  <td><span className="pill cat">{e.category}</span></td>
+                  <td><span className="pill cat">{catLabel(e.category)}</span></td>
                   <td>{e.description}
                     {e.decision_note && <span className="muted"> · {e.status}: {e.decision_note}</span>}
                     {e.receipt_path && <> <a onClick={() => viewReceipt(e)} style={{ cursor: 'pointer' }} title="View receipt"><Paperclip size={13} style={{ verticalAlign: '-2px' }} /></a></>}</td>

@@ -47,7 +47,7 @@ export async function GET(request) {
     const eid = randomUUID();
     const { error } = await admin.from('expenses').insert({
       id: eid, arrangement_id: a.id, date: today, amount: a.support_amount,
-      category: 'Support & Maintenance', description: 'Support & maintenance',
+      category: 'Support & Maintenance', description: null,
       paid_by: recipient,                                  // owed TO this side
       split_pct: a.support_from === 'h' ? 100 : 0,          // payer owes it all
       status: 'approved',                                   // standing agreement
