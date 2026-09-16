@@ -10,6 +10,18 @@ import { Bell, X, Menu, LogOut } from 'lucide-react';
 import { Toasts } from '@/components/Toast';
 import { ConfirmHost } from '@/components/Confirm';
 
+// Where a notification points, by its type prefix (parent routes are enough).
+const NOTIF_ROUTES = [
+  ['expense', '/expenses'],
+  ['support', '/expenses'],
+  ['deviation', '/calendar'],
+  ['day_comment', '/calendar'],
+  ['todo', '/todos'],
+  ['post', '/messages'],
+];
+const notifHref = type =>
+  NOTIF_ROUTES.find(([prefix]) => (type || '').startsWith(prefix))?.[1] || '/dashboard';
+
 const NAV = [
   ['/dashboard', 'Dashboard'],
   ['/calendar', 'Calendar'],
@@ -103,10 +115,11 @@ export default function Shell({ children }) {
           </div>
           {store.notifications.length === 0 && <div className="empty">No notifications yet.</div>}
           {store.notifications.map(n => (
-            <div key={n.id} className={`notif ${n.read ? '' : 'unread'}`}>
+            <Link key={n.id} href={notifHref(n.type)} className={`notif ${n.read ? '' : 'unread'}`}
+              onClick={() => setShowNotifs(false)}>
               {n.message}
               <div className="when">{new Date(n.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
