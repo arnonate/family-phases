@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
-import { ArrTabs, useArrSelection, KidChecks, Explainer } from '@/components/ui';
+import { Modal, ArrTabs, useArrSelection, KidChecks, Explainer } from '@/components/ui';
 import { fmt } from '@/lib/custody';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
@@ -82,7 +82,7 @@ function Activities({ arr, me, store, canEdit }) {
   return (
     <div className="card">
       <h2>{arrName(arr)}&apos;s activities
-        {canEdit && <button className="btn small" onClick={() => setShowAdd(v => !v)}>{showAdd ? 'Cancel' : '+ Add'}</button>}
+        {canEdit && <button className="btn small" onClick={() => setShowAdd(true)}>+ Add</button>}
       </h2>
       {!arr.activities?.length && !showAdd && (
         <div className="empty">Nothing scheduled yet{canEdit ? ' — add a practice season or a one-time event to get it on the calendar' : ''}.</div>
@@ -100,7 +100,7 @@ function Activities({ arr, me, store, canEdit }) {
         </div>
       ))}
       {showAdd && (
-        <div style={{ marginTop: 10 }}>
+        <Modal title="Add to the calendar" onClose={() => setShowAdd(false)}>
           <div className="field"><label>What kind?</label>
             <div className="dow-row">
               <button type="button" className={`dow wide ${kind === 'once' ? 'on' : ''}`}
@@ -142,8 +142,11 @@ function Activities({ arr, me, store, canEdit }) {
             <div className="field"><label>Time</label><input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 5:30 PM" /></div>
             <div className="field"><label>Location</label><input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Riverside Park" /></div>
           </div>
-          <button className="btn" disabled={busy} onClick={add}>{busy ? 'Saving…' : kind === 'once' ? 'Add event' : 'Add activity'}</button>
-        </div>
+          <div className="actions">
+            <button className="btn subtle" onClick={() => setShowAdd(false)}>Cancel</button>
+            <button className="btn" disabled={busy} onClick={add}>{busy ? 'Saving…' : kind === 'once' ? 'Add event' : 'Add activity'}</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
