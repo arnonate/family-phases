@@ -133,12 +133,26 @@ export function ArrTabs({ arrangements, value, onChange, allLabel }) {
   );
 }
 
-// simple hook for the “current arrangement” selection
+// simple hook for the “current arrangement” selection — persisted in
+// localStorage so a refresh (or moving between pages) keeps the context
+const SEL_KEY = 'fp_arr_sel';
+
 export function useArrSelection(arrangements, withAll = false) {
   const first = withAll && arrangements.length > 1 ? 'all' : arrangements[0]?.id;
-  const [sel, setSel] = useState(first);
+  const [sel, setSelState] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' && localStorage.getItem(SEL_KEY);
+      if (saved === 'all') return withAll && arrangements.length > 1 ? 'all' : first;
+      if (saved && arrangements.some(a => a.id === saved)) return saved;
+    } catch {}
+    return first;
+  });
+  const setSel = v => {
+    try { localStorage.setItem(SEL_KEY, v); } catch {}
+    setSelState(v);
+  };
   useEffect(() => {
-    if (!sel || (sel !== 'all' && !arrangements.some(a => a.id === sel))) setSel(first);
+    if (!sel || (sel !== 'all' && !arrangements.some(a => a.id === sel))) setSelState(first);
   }, [arrangements, sel, first]);
   return [sel, setSel];
 }
