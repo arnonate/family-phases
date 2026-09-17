@@ -149,10 +149,10 @@ function Activities({ arr, me, store, canEdit }) {
               </div>
             </>
           )}
-          <div className="row">
-            <div className="field"><label>Time</label><input type="time" value={time} onChange={e => setTime(e.target.value)} /></div>
-            <div className="field"><label>Location</label><input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Riverside Park" /></div>
-          </div>
+          <div className="field"><label>Time</label>
+            <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ maxWidth: 200 }} /></div>
+          <div className="field"><label>Location</label>
+            <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Riverside Park" /></div>
           <div className="actions">
             <button className="btn subtle" onClick={() => setShowAdd(false)}>Cancel</button>
             <button className="btn" disabled={busy} onClick={add}>{busy ? 'Saving…' : kind === 'once' ? 'Add event' : 'Add activity'}</button>
