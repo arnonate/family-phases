@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useStore, sideName, kidSideName, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import {
-  todayStr, addDays, fmt, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance, activityOn,
+  todayStr, addDays, fmt, fmtTime, pd, money, daySummary, isTransfer, nextTransfer, custodyFor, balance, activityOn,
 } from '@/lib/custody';
 import Moon, { phaseLabel } from '@/components/Moon';
 import { ArrowLeftRight } from 'lucide-react';
@@ -38,7 +38,7 @@ function WeekList({ arrangements, tod, nameForSide, actFilter }) {
                     </div>
                     {acts.map(act => (
                       <div key={act.id} className="wl-act">
-                        {act.time && <b>{act.time}</b>} {act.name}
+                        {act.time && <b>{fmtTime(act.time)}</b>} {act.name}
                         {act.child_ids?.length > 0 && (
                           <span className="muted"> — {act.child_ids.map(id => kidName(a, id)).join(', ')}</span>
                         )}

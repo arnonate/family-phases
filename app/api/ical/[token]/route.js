@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { daySummary, addDays, todayStr, activityOn, listNames } from '@/lib/custody';
+import { daySummary, addDays, todayStr, activityOn, listNames, fmtTime } from '@/lib/custody';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,7 +85,7 @@ export async function GET(request, { params }) {
         if (!activityOn(act, d)) continue;
         events.push({
           start: d, endExclusive: addDays(d, 1),
-          title: `${act.name}${act.time ? ' ' + act.time : ''}${kids ? ` (${kids})` : ''}`,
+          title: `${act.name}${act.time ? ' ' + fmtTime(act.time) : ''}${kids ? ` (${kids})` : ''}`,
           location: act.location || null,
         });
       }

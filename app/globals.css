@@ -150,6 +150,8 @@ tr:last-child td{border-bottom:none}
 .wl-date b{display:block;color:var(--ink);font-size:13.5px}
 .wl-body{flex:1;min-width:0}
 .wl-arrs{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+.todo.past{opacity:.5}
+.todo.past .t-title{text-decoration:line-through}
 .wl-arr-block + .wl-arr-block{margin-top:6px}
 .wl-arr-block .wl-act{margin-left:14px}
 .wl-act{font-size:13px;margin-top:4px}

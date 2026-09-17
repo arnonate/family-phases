@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { daySummary, activityOn, listNames } from '@/lib/custody';
+import { daySummary, activityOn, listNames, fmtTime } from '@/lib/custody';
 import { randomUUID } from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
@@ -94,7 +94,7 @@ export async function GET(request) {
           : w === 'mix' ? 'split between homes'
           : `with ${w === 'h' ? parentName(a, 'h', a.h_label || 'home side') : parentName(a, 'c', a.c_label || 'co-parent')}`;
         const acts = (a.activities || []).filter(act => activityOn(act, today))
-          .map(act => `${act.name}${act.time ? ' ' + act.time : ''}${act.location ? ' @ ' + act.location : ''}`);
+          .map(act => `${act.name}${act.time ? ' ' + fmtTime(act.time) : ''}${act.location ? ' @ ' + act.location : ''}`);
         return `• ${kids}: ${withWho}${acts.length ? ` — ${acts.join('; ')}` : ''}`;
       });
   }

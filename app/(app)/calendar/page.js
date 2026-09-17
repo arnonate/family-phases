@@ -9,7 +9,7 @@ import { toast } from '@/components/Toast';
 import CommentThread from '@/components/CommentThread';
 import { confirmDelete, confirmAction } from '@/components/Confirm';
 import {
-  ds, pd, todayStr, addDays, fmt, custodyFor, daySummary, isTransfer, activityOn,
+  ds, pd, todayStr, addDays, fmt, fmtTime, custodyFor, daySummary, isTransfer, activityOn,
 } from '@/lib/custody';
 
 export default function CalendarPage() {
@@ -229,7 +229,7 @@ export default function CalendarPage() {
                           </div>
                           {acts.map(act => (
                             <div key={act.id} className="wl-act">
-                              {act.time && <b>{act.time}</b>} {act.name}
+                              {act.time && <b>{fmtTime(act.time)}</b>} {act.name}
                               {act.child_ids?.length > 0 && (
                                 <span className="muted"> — {act.child_ids.map(id => kidName(a, id)).join(', ')}</span>
                               )}
@@ -353,7 +353,7 @@ function DayModal({ date, shown, me, store, readOnly, nameFor = sideName, onClos
               return (
                 <div key={act.id} className="act-row">
                   <b>{act.name}</b>
-                  <span className="muted">{[act.time, act.location].filter(Boolean).join(' · ')}</span>
+                  <span className="muted">{[fmtTime(act.time), act.location].filter(Boolean).join(' · ')}</span>
                   {act.child_ids?.length > 0 && (
                     <span className="muted">{act.child_ids.map(id => kidName(act.arr, id)).join(', ')}</span>
                   )}

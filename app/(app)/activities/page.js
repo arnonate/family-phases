@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useStore, mySide, childIdentity, kidName, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { Modal, ArrTabs, useArrSelection, KidChecks, Explainer } from '@/components/ui';
-import { fmt } from '@/lib/custody';
+import { fmt, fmtTime, todayStr } from '@/lib/custody';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
 import { CalendarClock, Trash2 } from 'lucide-react';
@@ -70,11 +70,22 @@ function Activities({ arr, me, store, canEdit }) {
     if (error) toast.error(`Couldn't delete: ${error.message}`);
     store.refresh();
   }
+  // upcoming/active first (soonest on top); finished ones sink to the
+  // bottom, most recently ended first
+  const tod = todayStr();
+  const sorted = (arr.activities || [])
+    .map(a => ({ ...a, past: a.end_date < tod }))
+    .sort((x, y) => {
+      if (x.past !== y.past) return x.past ? 1 : -1;
+      if (x.past) return x.end_date < y.end_date ? 1 : -1;
+      return (x.start_date + (x.time || '99')) < (y.start_date + (y.time || '99')) ? -1 : 1;
+    });
+
   const desc = act => {
     const parts = [];
     if (act.start_date === act.end_date) parts.push(fmt(act.start_date));
     else parts.push(`${(act.days || []).map(d => DOW[d]).join('')} · ${fmt(act.start_date, { month: 'short', day: 'numeric' })}–${fmt(act.end_date, { month: 'short', day: 'numeric' })}`);
-    if (act.time) parts.push(act.time);
+    if (act.time) parts.push(fmtTime(act.time));
     if (act.location) parts.push(act.location);
     return parts.join(' · ');
   };
@@ -87,8 +98,8 @@ function Activities({ arr, me, store, canEdit }) {
       {!arr.activities?.length && !showAdd && (
         <div className="empty">Nothing scheduled yet{canEdit ? ' — add a practice season or a one-time event to get it on the calendar' : ''}.</div>
       )}
-      {(arr.activities || []).map(act => (
-        <div key={act.id} className="todo">
+      {sorted.map(act => (
+        <div key={act.id} className={`todo ${act.past ? 'past' : ''}`}>
           <div style={{ flex: 1 }}>
             <div className="t-title">{act.name}</div>
             <div className="t-meta">
@@ -139,7 +150,7 @@ function Activities({ arr, me, store, canEdit }) {
             </>
           )}
           <div className="row">
-            <div className="field"><label>Time</label><input value={time} onChange={e => setTime(e.target.value)} placeholder="e.g. 5:30 PM" /></div>
+            <div className="field"><label>Time</label><input type="time" value={time} onChange={e => setTime(e.target.value)} /></div>
             <div className="field"><label>Location</label><input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Riverside Park" /></div>
           </div>
           <div className="actions">
