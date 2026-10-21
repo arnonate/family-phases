@@ -176,6 +176,31 @@ async function main() {
   const { data: setAfter } = await admin.from('settlements').select('id').eq('id', setId);
   check('the creator can delete their own payment', (setAfter || []).length === 0);
 
+  // Paid expenses: a payment locks the expenses it covers until it's deleted
+  const paidExpId = randomUUID();
+  await parent.client.from('expenses').insert({
+    id: paidExpId, arrangement_id: arrId, date: '2026-01-21', amount: 40, category: 'Other', paid_by: 'h', status: 'approved', created_by: parent.id,
+  });
+  const { data: paySetId, error: payErr } = await coparent.client.rpc('record_payment', {
+    aid: arrId, pdate: '2026-01-22', pamount: 10, pdirection: 'c2h', pnote: null, expense_ids: [paidExpId],
+  });
+  check('a member records a payment covering expenses', !payErr && !!paySetId, payErr?.message);
+  const { data: paidRow } = await admin.from('expenses').select('settlement_id').eq('id', paidExpId).single();
+  check('covered expense is marked paid', paidRow?.settlement_id === paySetId);
+  await parent.client.from('expenses').delete().eq('id', paidExpId);
+  const { data: paidStill } = await admin.from('expenses').select('id').eq('id', paidExpId);
+  check('a paid expense cannot be deleted, even by its creator', paidStill?.length === 1);
+  const { error: unlinkErr } = await coparent.client.from('expenses').update({ settlement_id: null }).eq('id', paidExpId);
+  check('a paid expense cannot be unlinked directly', !!unlinkErr);
+  const { error: vPayErr } = await viewer.client.rpc('record_payment', {
+    aid: arrId, pdate: '2026-01-22', pamount: 10, pdirection: 'c2h', pnote: null, expense_ids: [],
+  });
+  check('viewer cannot record a payment', !!vPayErr);
+  await coparent.client.from('settlements').delete().eq('id', paySetId);
+  await parent.client.from('expenses').delete().eq('id', paidExpId);
+  const { data: unlocked } = await admin.from('expenses').select('id').eq('id', paidExpId);
+  check('deleting the payment unlocks its expenses', (unlocked || []).length === 0);
+
   // Approvals must come from the other home
   const devId = randomUUID();
   await parent.client.from('deviations').insert({

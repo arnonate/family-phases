@@ -16,6 +16,7 @@ import { StoreProvider } from '@/lib/store';
 import Shell from '@/components/Shell';
 import Dashboard from '@/app/(app)/dashboard/page';
 import CalendarPage from '@/app/(app)/calendar/page';
+import ExpensesPage from '@/app/(app)/expenses/page';
 
 function mount(ui, fx) {
   globalThis.__fakeSupa = makeFakeSupa(fx);
@@ -54,6 +55,25 @@ describe('parent experience', () => {
     // list view renders per-arrangement labels (regression: arrName import)
     fireEvent.click(screen.getByLabelText('List view'));
     await waitFor(() => screen.getAllByText(/Jude & Molly/));
+  });
+
+  it('paid expenses show as paid and cannot be deleted', async () => {
+    const fx = makeFixture();
+    const arr = fx.arrangements[0];
+    arr.settlements = [{ id: 's1', arrangement_id: 'arr-sj', date: '2026-08-05', amount: 75, direction: 'h2c', created_by: 'nate' }];
+    arr.expenses = [
+      { id: 'e2', arrangement_id: 'arr-sj', date: '2026-08-02', amount: 40, category: 'Other', description: 'Paid one', child_ids: [], paid_by: 'h', status: 'approved', created_by: 'nate', settlement_id: 's1' },
+      { id: 'e3', arrangement_id: 'arr-sj', date: '2026-08-10', amount: 20, category: 'Other', description: 'Open one', child_ids: [], paid_by: 'h', status: 'approved', created_by: 'nate', settlement_id: null },
+    ];
+    const { container } = mount(<ExpensesPage />, fx);
+    await waitFor(() => screen.getAllByText('Paid one'));
+    const paidRows = container.querySelectorAll('.exp-item.paid');
+    expect(paidRows.length).toBe(1);
+    expect(paidRows[0].textContent).toMatch(/paid/);
+    expect(paidRows[0].querySelector('button').disabled).toBe(true);
+    const openRow = [...container.querySelectorAll('.exp-item')].find(r => r.textContent.includes('Open one'));
+    expect(openRow.querySelector('button').disabled).toBe(false);
+    expect(screen.getAllByText(/covers 1 expense\b/).length).toBeGreaterThan(0);
   });
 
   it('dashboard renders with multiple arrangements', async () => {

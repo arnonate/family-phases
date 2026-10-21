@@ -1208,3 +1208,60 @@ end $$;
 alter table arrangements add column support_amount numeric check (support_amount > 0);
 alter table arrangements add column support_from text check (support_from in ('h','c'));
 alter table arrangements add column support_days int[] not null default '{}';
+
+-- ============ PAID EXPENSES ============
+-- A payment names the expenses it covers. Covered expenses stay visible
+-- (receipts and all) but are locked: no deleting, no re-deciding. Deleting
+-- the payment unlocks them again.
+
+alter table expenses add column settlement_id uuid references settlements on delete set null;
+create index expenses_settlement_idx on expenses (settlement_id);
+
+-- Backfill: each approved expense is covered by the first payment dated on
+-- or after it.
+update expenses e set settlement_id = (
+  select s.id from settlements s
+  where s.arrangement_id = e.arrangement_id and s.date >= e.date
+  order by s.date, s.created_at limit 1)
+where e.status = 'approved' and e.settlement_id is null;
+
+drop policy "expenses delete own decided" on expenses;
+create policy "expenses delete own decided" on expenses for delete
+  using (created_by = auth.uid() and status <> 'pending' and settlement_id is null);
+
+-- Clients can't link, unlink, or edit a paid expense directly. Linking goes
+-- through record_payment (security definer, so it runs as the owner), and
+-- the FK's set-null on payment delete runs as the owner too.
+create or replace function public.trg_expense_paid_guard()
+returns trigger language plpgsql as $$
+begin
+  if current_user in ('authenticated', 'anon') and (
+    (tg_op = 'INSERT' and new.settlement_id is not null) or
+    (tg_op = 'UPDATE' and (old.settlement_id is not null or new.settlement_id is distinct from old.settlement_id))
+  ) then
+    raise exception 'This expense has been paid and is locked.';
+  end if;
+  return new;
+end $$;
+
+create trigger expense_paid_guard before insert or update on expenses
+  for each row execute function public.trg_expense_paid_guard();
+
+-- Records a payment and marks the chosen approved, unpaid expenses as
+-- covered by it, in one transaction.
+create or replace function public.record_payment(
+  aid uuid, pdate date, pamount numeric, pdirection text, pnote text, expense_ids uuid[])
+returns uuid language plpgsql security definer set search_path = public as $$
+declare sid uuid;
+begin
+  if not public.is_arrangement_member(aid) then
+    raise exception 'Not a member of this arrangement.';
+  end if;
+  insert into settlements (arrangement_id, date, amount, direction, note, created_by)
+  values (aid, pdate, pamount, pdirection, pnote, auth.uid())
+  returning id into sid;
+  update expenses set settlement_id = sid
+  where id = any(coalesce(expense_ids, '{}')) and arrangement_id = aid
+    and status = 'approved' and settlement_id is null;
+  return sid;
+end $$;

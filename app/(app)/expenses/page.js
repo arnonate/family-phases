@@ -4,7 +4,7 @@ import { useStore, sideName, mySide, kidName, bothSidesJoined, isViewer, arrName
 import { supa } from '@/lib/supabase/client';
 import { Modal, KidChecks, ArrTabs, useArrSelection, UnitInput } from '@/components/ui';
 import { todayStr, fmt, money, balance, expenseSplit, CATS } from '@/lib/custody';
-import { Banknote, Paperclip, Trash2 } from 'lucide-react';
+import { Banknote, Check, Lock, Paperclip, Trash2 } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { confirmDelete, confirmAction } from '@/components/Confirm';
 
@@ -12,6 +12,28 @@ const PAGE = 10;
 
 // Pill-friendly category label (the ledger row already says what it is)
 const catLabel = c => c === 'Support & Maintenance' ? 'Support' : c;
+
+// Status pill; a paid expense shows "paid" in place of "approved"
+function StatusPill({ e }) {
+  if (e.settlement_id) return <span className="pill paid"><Check size={11} strokeWidth={3} style={{ verticalAlign: '-1px' }} /> paid</span>;
+  return <span className={`pill ${e.status}`}>{e.status}</span>;
+}
+
+// Paid expenses keep a visible but disabled delete button explaining the lock
+function DeleteExpense({ e, arr, me, onDelete }) {
+  if (e.created_by !== me.id || e.status === 'pending') return null;
+  if (e.settlement_id) {
+    const p = arr.settlements.find(x => x.id === e.settlement_id);
+    const when = p ? ` on ${fmt(p.date, { month: 'short', day: 'numeric' })}` : '';
+    return (
+      <button className="btn subtle small" disabled
+        title={`Covered by the payment${when}. Delete that payment to unlock this expense.`}>
+        <Lock size={15} />
+      </button>
+    );
+  }
+  return <button className="btn danger small" onClick={() => onDelete(e)}><Trash2 size={15} /></button>;
+}
 
 function Pager({ page, setPage, total }) {
   if (total <= PAGE) return null;
@@ -53,6 +75,8 @@ export default function ExpensesPage() {
   const mExp = arr.expenses.filter(e => e.date.startsWith(nowM) && e.status === 'approved' && e.category !== 'Support & Maintenance');
   const mTot = mExp.reduce((s, e) => s + Number(e.amount), 0);
   const pending = arr.expenses.filter(e => e.status === 'pending');
+  const covered = p => arr.expenses.filter(e => e.settlement_id === p.id).length;
+  const coversLabel = p => { const n = covered(p); return n ? `covers ${n} expense${n === 1 ? '' : 's'}` : ''; };
 
   async function decide(e, status) {
     let decision_note = null;
@@ -77,7 +101,9 @@ export default function ExpensesPage() {
     store.refresh();
   }
   async function removeSettle(p) {
-    if (!(await confirmDelete(`Delete this ${money(Number(p.amount))} payment? The balance will change accordingly.`))) return;
+    const n = arr.expenses.filter(e => e.settlement_id === p.id).length;
+    const unlock = n ? ` The ${n} expense${n === 1 ? '' : 's'} it covers will be unlocked.` : '';
+    if (!(await confirmDelete(`Delete this ${money(Number(p.amount))} payment? The balance will change accordingly.${unlock}`))) return;
 
     const { error } = await supa().from('settlements').delete().eq('id', p.id);
     if (error) toast.error(`Couldn't delete: ${error.message}`);
@@ -188,12 +214,12 @@ export default function ExpensesPage() {
         {rows.length > 0 && (
           <div className="exp-cards">
             {rows.map(e => (
-              <div key={e.id} className="exp-item">
+              <div key={e.id} className={`exp-item ${e.settlement_id ? 'paid' : ''}`}>
                 <div className="ei-main">
                 <div className="ei-top">
                   <b>{money(Number(e.amount))}</b>
                   <span className="pill cat">{catLabel(e.category)}</span>
-                  <span className={`pill ${e.status}`}>{e.status}</span>
+                  <StatusPill e={e} />
                   <span className="ei-date">{fmt(e.date, { month: 'short', day: 'numeric' })}</span>
                 </div>
                 {(e.description || e.receipt_path || e.decision_note) && (
@@ -211,8 +237,7 @@ export default function ExpensesPage() {
                   </span>
                 </div>
                 </div>
-                {e.created_by === me.id && e.status !== 'pending' &&
-                  <button className="btn danger small" onClick={() => remove(e)}><Trash2 size={15} /></button>}
+                <DeleteExpense e={e} arr={arr} me={me} onDelete={remove} />
               </div>
             ))}
           </div>
@@ -224,7 +249,7 @@ export default function ExpensesPage() {
                 <th className="right">Amount</th><th>Paid by</th>
                 <th className="right">{side === 'h' ? 'My share' : `${sideName(arr, 'h')}'s share`}</th><th>Status</th><th></th></tr>
               {rows.map(e => (
-                <tr key={e.id}>
+                <tr key={e.id} className={e.settlement_id ? 'paid' : ''}>
                   <td>{fmt(e.date, { month: 'short', day: 'numeric', year: '2-digit' })}</td>
                   <td>{(e.child_ids || []).map(id => kidName(arr, id)).join(', ') || '—'}</td>
                   <td><span className="pill cat">{catLabel(e.category)}</span></td>
@@ -237,9 +262,8 @@ export default function ExpensesPage() {
                     : <span className={`pill ${e.paid_by}`}>{sideName(arr, e.paid_by)}</span>}</td>
                   <td className="right">{money(Number(e.amount) * expenseSplit(arr, e))}
                     {e.split_pct != null && <span className="mini" title={`Custom split: ${e.split_pct}/${100 - e.split_pct}`} style={{ marginLeft: 4 }}>{e.split_pct}%</span>}</td>
-                  <td><span className={`pill ${e.status}`}>{e.status}</span></td>
-                  <td className="right">{e.created_by === me.id && e.status !== 'pending' &&
-                    <button className="btn danger small" onClick={() => remove(e)}><Trash2 size={15} /></button>}</td>
+                  <td><StatusPill e={e} /></td>
+                  <td className="right"><DeleteExpense e={e} arr={arr} me={me} onDelete={remove} /></td>
                 </tr>
               ))}
             </tbody></table>
@@ -265,7 +289,7 @@ export default function ExpensesPage() {
                     : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</span>
                   <span className="ei-date">{fmt(p.date, { month: 'short', day: 'numeric' })}</span>
                 </div>
-                {p.note && <div className="ei-meta"><span>{p.note}</span></div>}
+                {(p.note || covered(p) > 0) && <div className="ei-meta"><span>{[p.note, coversLabel(p)].filter(Boolean).join(' · ')}</span></div>}
                 </div>
                 {p.created_by === me.id && <button className="btn danger small" onClick={() => removeSettle(p)}><Trash2 size={15} /></button>}
               </div>
@@ -283,7 +307,7 @@ export default function ExpensesPage() {
                     ? `${sideName(arr, 'h')} → ${sideName(arr, 'c')}`
                     : `${sideName(arr, 'c')} → ${sideName(arr, 'h')}`}</td>
                   <td className="right">{money(Number(p.amount))}</td>
-                  <td className="muted">{p.note}</td>
+                  <td className="muted">{[p.note, coversLabel(p)].filter(Boolean).join(' · ')}</td>
                   <td className="right">{p.created_by === me.id &&
                     <button className="btn danger small" onClick={() => removeSettle(p)}><Trash2 size={15} /></button>}</td>
                 </tr>
@@ -405,12 +429,16 @@ function Settle({ arr, me, bal, store, onClose }) {
   const [amount, setAmount] = useState(Math.abs(bal) > 0.005 ? Math.abs(bal).toFixed(2) : '');
   const [direction, setDirection] = useState(bal >= 0 ? 'h2c' : 'c2h');
   const [note, setNote] = useState('');
+  const open = arr.expenses.filter(e => e.status === 'approved' && !e.settlement_id);
+  // Default amount is the full balance, so default to covering everything open
+  const [covers, setCovers] = useState(() => open.map(e => e.id));
+  const allOn = open.length > 0 && covers.length === open.length;
 
   async function submit() {
     const amt = parseFloat(amount);
     if (!(amt > 0)) { toast.error('Enter a positive amount.'); return; }
-    const { error } = await supa().from('settlements').insert({
-      arrangement_id: arr.id, date, amount: amt, direction, note: note.trim() || null, created_by: me.id,
+    const { error } = await supa().rpc('record_payment', {
+      aid: arr.id, pdate: date, pamount: amt, pdirection: direction, pnote: note.trim() || null, expense_ids: covers,
     });
     if (error) { toast.error(`Couldn't record payment: ${error.message}`); return; }
     store.refresh();
@@ -433,6 +461,29 @@ function Settle({ arr, me, bal, store, onClose }) {
           <option value="c2h">{sideName(arr, 'c')} paid {sideName(arr, 'h')}</option>
         </select></div>
       <div className="field"><label>Note</label><input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Venmo, July settle-up" /></div>
+      {open.length > 0 && (
+        <div className="field"><label>Covers these expenses</label>
+          <div className="cover-list">
+            <label className="cover-all">
+              <input type="checkbox" checked={allOn} onChange={() => setCovers(allOn ? [] : open.map(e => e.id))} />
+              Select all ({open.length})
+            </label>
+            {open.map(e => {
+              const on = covers.includes(e.id);
+              return (
+                <label key={e.id}>
+                  <input type="checkbox" checked={on}
+                    onChange={() => setCovers(on ? covers.filter(x => x !== e.id) : [...covers, e.id])} />
+                  <span className="cover-date">{fmt(e.date, { month: 'short', day: 'numeric' })}</span>
+                  <span className="cover-desc">{e.description || catLabel(e.category)}</span>
+                  <b>{money(Number(e.amount))}</b>
+                </label>
+              );
+            })}
+          </div>
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>Covered expenses are marked paid and can&apos;t be deleted.</p>
+        </div>
+      )}
       <div className="actions">
         <button className="btn subtle" onClick={onClose}>Cancel</button>
         <button className="btn" onClick={submit}>Save</button>
