@@ -50,8 +50,7 @@ export default function CommentThread({
       {!comments.length && <div className="muted" style={{ fontSize: 12.5, padding: '2px 0 6px' }}>{emptyText}</div>}
       {!readOnly && <form className="c-form" onSubmit={post}>
         {controls}
-        <GrowText value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…"
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) post(e); }} />
+        <GrowText value={body} onChange={e => setBody(e.target.value)} placeholder="Write a comment…" />
         <button type="submit" className="btn small" disabled={busy || !body.trim()} aria-label="Post comment">
           <SendHorizontal size={14} />
         </button>
