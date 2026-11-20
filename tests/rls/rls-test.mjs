@@ -19,7 +19,7 @@ const admin = createClient(URL_, SERVICE, { auth: { persistSession: false } });
 const run = randomUUID().slice(0, 8);
 const PASS = `Rls-test-${randomUUID()}`;
 let failures = 0;
-const created = { users: [], householdId: null };
+const created = { users: [], householdId: null, filePaths: [] };
 
 function check(name, cond, detail = '') {
   if (cond) console.log(`ok   ${name}`);
@@ -230,6 +230,51 @@ async function main() {
     .insert({ post_id: postId, arrangement_id: arrId, author: coparent.id, body: 'hi from the other home' });
   check('the other home can reply', !cpReply, cpReply?.message);
 
+  // Files: both homes upload and read, viewers read only, children see
+  // nothing, and only the uploader deletes (row and object)
+  const filePath = `${arrId}/${randomUUID()}-card.txt`;
+  created.filePaths.push(filePath);
+  const { error: upErr } = await parent.client.storage.from('files')
+    .upload(filePath, new Blob(['member id 123']), { contentType: 'text/plain' });
+  check('member uploads a file object', !upErr, upErr?.message);
+  const fileId = randomUUID();
+  const { error: fileErr } = await parent.client.from('files').insert({
+    id: fileId, arrangement_id: arrId, name: `rls-file-${run}`, category: 'Insurance', path: filePath, uploaded_by: parent.id,
+  });
+  check('member records a file', !fileErr, fileErr?.message);
+  const { data: cpFile } = await coparent.client.storage.from('files').download(filePath);
+  check('the other home can download it', !!cpFile);
+  const { data: vFiles } = await viewer.client.from('files').select('id').eq('id', fileId);
+  check('viewer sees files', vFiles?.length === 1);
+  const vPath = `${arrId}/${randomUUID()}-hax.txt`;
+  created.filePaths.push(vPath);
+  const { error: vUp } = await viewer.client.storage.from('files').upload(vPath, new Blob(['x']));
+  check('viewer cannot upload', !!vUp);
+  const { data: childFiles } = await child.client.from('files').select('id').eq('id', fileId);
+  check('child cannot see files', (childFiles || []).length === 0);
+  const { data: childObj } = await child.client.storage.from('files').download(filePath);
+  check('child cannot download files', !childObj);
+  const { data: outObj } = await outsider.client.storage.from('files').download(filePath);
+  check('outsider cannot download files', !outObj);
+  await coparent.client.from('files').delete().eq('id', fileId);
+  await coparent.client.storage.from('files').remove([filePath]);
+  const { data: fileStill } = await parent.client.from('files').select('id').eq('id', fileId);
+  check("the other home cannot delete someone else's file", fileStill?.length === 1);
+  const { data: objStill } = await parent.client.storage.from('files').download(filePath);
+  check("the other home cannot delete someone else's file object", !!objStill);
+
+  // Push subscriptions are strictly private
+  const { error: subErr } = await parent.client.from('push_subscriptions').insert({
+    user_id: parent.id, endpoint: `https://push.example/${run}`, p256dh: 'k', auth: 'a',
+  });
+  check('a user saves their own push subscription', !subErr, subErr?.message);
+  const { data: otherSubs } = await partner.client.from('push_subscriptions').select('id');
+  check("push subscriptions are invisible to others, even partners", (otherSubs || []).length === 0);
+  const { error: forgeSub } = await partner.client.from('push_subscriptions').insert({
+    user_id: parent.id, endpoint: `https://push.example/forged-${run}`, p256dh: 'k', auth: 'a',
+  });
+  check('push subscriptions cannot be created for someone else', !!forgeSub);
+
   // Personal prefs are private
   await parent.client.from('arrangement_prefs').upsert({ arrangement_id: arrId, user_id: parent.id, nickname: 'mine' });
   const { data: cpPrefs } = await coparent.client.from('arrangement_prefs').select('*').eq('arrangement_id', arrId);
@@ -259,6 +304,7 @@ async function cleanup() {
     // c-side homes were auto-created at claim time; find them via created_by
     const { data: extraHouses } = await admin.from('households')
       .select('id').in('created_by', created.users);
+    if (created.filePaths.length) await admin.storage.from('files').remove(created.filePaths);
     if (created.householdId) await admin.from('households').delete().eq('id', created.householdId);
     for (const h of extraHouses || []) await admin.from('households').delete().eq('id', h.id);
     for (const id of created.users) await admin.auth.admin.deleteUser(id);

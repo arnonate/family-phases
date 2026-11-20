@@ -6,20 +6,22 @@ export default function PrivacyPage() {
   return (
     <main className="wrap policy">
       <h1>Privacy Policy</h1>
-      <p className="muted">Last updated: August 11, 2026</p>
+      <p className="muted">Last updated: November 19, 2026</p>
 
       <h2>What we collect</h2>
       <p>
         Family Phases stores the information you and your family enter to coordinate
         co-parenting: your name and email address, the names of family members you add,
-        custody schedules, activities, expenses, to-dos, and comments. We don&apos;t collect
+        custody schedules, activities, expenses, to-dos, comments, and files you upload
+        (such as insurance cards). If you turn on notifications, we also store the push
+        address your browser provides for that device. We don&apos;t collect
         anything beyond what the app needs to work.
       </p>
 
       <h2>How it&apos;s used</h2>
       <p>
         Your information is used only to run the service: showing schedules and expenses to
-        the people in your family circle, sending notification and digest emails, and keeping
+        the people in your family circle, sending notifications and digest emails, and keeping
         calendar feeds up to date. We don&apos;t sell your data, show ads, or share your
         information with anyone outside the services that host the app.
       </p>

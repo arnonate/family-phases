@@ -17,6 +17,7 @@ import Shell from '@/components/Shell';
 import Dashboard from '@/app/(app)/dashboard/page';
 import CalendarPage from '@/app/(app)/calendar/page';
 import ExpensesPage from '@/app/(app)/expenses/page';
+import FilesPage from '@/app/(app)/files/page';
 
 function mount(ui, fx) {
   globalThis.__fakeSupa = makeFakeSupa(fx);
@@ -43,7 +44,32 @@ describe('parent experience', () => {
     mount(<Shell><div>page</div></Shell>, makeFixture());
     await waitFor(() => screen.getByText('Expenses'));
     expect(screen.getByText('Settings')).toBeTruthy();
+    expect(screen.getByText('Files')).toBeTruthy();
     expect(screen.getByTitle('Notifications')).toBeTruthy();
+  });
+
+  it('files are grouped by category, with thumbnails and own-only delete', async () => {
+    const { container } = mount(<FilesPage />, makeFixture());
+    await waitFor(() => screen.getByText('Molly BCBS card'));
+    expect(screen.getByText('Insurance')).toBeTruthy();
+    expect(screen.getByText('School')).toBeTruthy();
+    expect(screen.getByText('+ Upload')).toBeTruthy();
+    // child tag and size in the meta line
+    expect(screen.getByText(/Molly · Nate/)).toBeTruthy();
+    expect(screen.getByText(/3\.3 MB/)).toBeTruthy();
+    // image gets a signed thumbnail; the PDF gets an icon
+    await waitFor(() => expect(container.querySelector('img.file-thumb')?.getAttribute('src')).toBe('signed:arr-sj/f1-card.jpg'));
+    // I can delete my upload, not the co-parent's
+    expect(screen.getByLabelText('Delete Molly BCBS card')).toBeTruthy();
+    expect(screen.queryByLabelText('Delete Enrollment form')).toBe(null);
+  });
+
+  it('tapping an image file opens a preview', async () => {
+    mount(<FilesPage />, makeFixture());
+    await waitFor(() => screen.getByText('Molly BCBS card'));
+    fireEvent.click(screen.getByText('Molly BCBS card'));
+    await waitFor(() => screen.getByAltText('Molly BCBS card'));
+    expect(screen.getByText('Full size')).toBeTruthy();
   });
 
   it('calendar renders with multiple arrangements, named after the kids', async () => {
@@ -95,6 +121,12 @@ describe('parent experience', () => {
 });
 
 describe('child experience', () => {
+  it('files page is off limits', async () => {
+    mount(<FilesPage />, makeFixture({ asChild: true }));
+    await waitFor(() => screen.getByText(/Nothing here for you/));
+    expect(screen.queryByText('Molly BCBS card')).toBe(null);
+  });
+
   it('dashboard greets the child and uses kid-facing labels', async () => {
     mount(<Dashboard />, makeFixture({ asChild: true }));
     await waitFor(() => screen.getByText(/Hello, Molly/));
@@ -110,6 +142,7 @@ describe('child experience', () => {
     expect(screen.queryByText('Expenses')).toBe(null);
     expect(screen.queryByText('Settings')).toBe(null);
     expect(screen.queryByTitle('Notifications')).toBe(null);
+    expect(screen.queryByText('Files')).toBe(null);
     expect(screen.getByText('To-Dos')).toBeTruthy();
   });
 

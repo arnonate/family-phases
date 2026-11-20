@@ -10,7 +10,7 @@ Supports multiple co-parenting arrangements under one household, each with its o
 
 **1. Create a Supabase project** at [supabase.com](https://supabase.com) (free tier is fine).
 
-**2. Run the schema.** In the Supabase dashboard open SQL Editor, paste the contents of `supabase/schema.sql`, and run it. This creates all tables, security policies, notification triggers, and the receipts storage bucket.
+**2. Run the schema.** In the Supabase dashboard open SQL Editor, paste the contents of `supabase/schema.sql`, and run it. This creates all tables, security policies, notification triggers, and the storage buckets for receipts and files.
 
 **3. Configure auth.** In Authentication → URL Configuration, set the Site URL to your app's URL (`http://localhost:3000` for local use) and add `http://localhost:3000/auth/callback` (and later your production equivalent) to Redirect URLs. Email sign-in links are enabled by default.
 
@@ -30,6 +30,20 @@ Open http://localhost:3000, sign in with your email, and follow the setup screen
 ## Deploying (Vercel)
 
 Push the repo to GitHub, import it at [vercel.com](https://vercel.com), and add the same environment variables (set `NEXT_PUBLIC_APP_URL` to your production URL). Update the Supabase Site URL and Redirect URLs to match. The included `vercel.json` schedules the email-notification cron; it does nothing unless you add a `RESEND_API_KEY`.
+
+## Push notifications (optional)
+
+New messages, replies, and schedule-change proposals and decisions go out as Web Push notifications to anyone who turns them on in Settings. Android browsers support this directly. On iPhone and iPad (iOS 16.4+), it only works once Family Phases is added to the Home Screen and opened from there.
+
+1. Generate keys with `npx web-push generate-vapid-keys`. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (a `mailto:` address), plus a random `PUSH_WEBHOOK_SECRET`, in `.env.local` and on Vercel.
+2. Tell the database where to send notifications. The `PUSH WEBHOOK` section of `schema.sql` posts each new notification to `/api/push` using two Vault secrets. Create them in the SQL Editor:
+
+   ```sql
+   select vault.create_secret('https://<your app>/api/push', 'push_webhook_url');
+   select vault.create_secret('<PUSH_WEBHOOK_SECRET>', 'push_webhook_secret');
+   ```
+
+Without the keys, the Settings card stays hidden and nothing else changes.
 
 ## How invites work
 

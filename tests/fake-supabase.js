@@ -36,6 +36,10 @@ export function makeFixture({ asChild = false, twoArrangements = false } = {}) {
       { id: 't1', arrangement_id: 'arr-sj', title: 'Turn in camp form', due: null, child_id: 'k1', assigned_to: null, done: false, todo_comments: [] },
     ],
     day_comments: [],
+    files: [
+      { id: 'f1', arrangement_id: 'arr-sj', child_id: 'k1', category: 'Insurance', name: 'Molly BCBS card', path: 'arr-sj/f1-card.jpg', mime: 'image/jpeg', size: 240000, uploaded_by: 'nate', created_at: '2026-11-01T12:00:00Z', profiles: nateP },
+      { id: 'f2', arrangement_id: 'arr-sj', child_id: null, category: 'School', name: 'Enrollment form', path: 'arr-sj/f2-form.pdf', mime: 'application/pdf', size: 3500000, uploaded_by: 'chris', created_at: '2026-11-02T12:00:00Z', profiles: chrisP },
+    ],
     activities: [
       { id: 'act1', arrangement_id: 'arr-sj', name: 'Soccer', child_ids: ['k1'], start_date: todayStr(), end_date: todayStr(), days: [], time: '5:30 PM', location: 'Riverside' },
     ],
@@ -49,7 +53,7 @@ export function makeFixture({ asChild = false, twoArrangements = false } = {}) {
     c_label: 'Sam', kid_c_label: 'Dad',
     member_identities: [{ arrangement_id: 'arr-kc', user_id: 'nate', identity: 'dad', label: null }],
     children: [{ id: 'k3', arrangement_id: 'arr-kc', name: 'Kai', color: '#34d399', user_id: null }],
-    expenses: [], todos: [], activities: [],
+    expenses: [], todos: [], activities: [], files: [],
   };
 
   return {
@@ -89,6 +93,13 @@ export function makeFakeSupa(fx) {
     from,
     channel: () => ({ on() { return this; }, subscribe() { return this; } }),
     removeChannel() {},
-    storage: { from: () => ({ upload: async () => ({ error: null }), createSignedUrl: async () => ({ data: { signedUrl: '#' }, error: null }) }) },
+    storage: {
+      from: () => ({
+        upload: async () => ({ error: null }),
+        remove: async () => ({ error: null }),
+        createSignedUrl: async () => ({ data: { signedUrl: '#' }, error: null }),
+        createSignedUrls: async paths => ({ data: paths.map(path => ({ path, signedUrl: `signed:${path}` })), error: null }),
+      }),
+    },
   };
 }

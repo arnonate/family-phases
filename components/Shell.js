@@ -1,31 +1,22 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStore, childIdentity } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
+import { notifHref } from '@/lib/notify';
+import { syncPush, disablePush } from '@/lib/push';
 import Setup from '@/components/Setup';
 import AddToHome from '@/components/AddToHome';
 import { Bell, X, Menu, LogOut } from 'lucide-react';
 import { Toasts } from '@/components/Toast';
 import { ConfirmHost } from '@/components/Confirm';
 
-// Where a notification points, by its type prefix (parent routes are enough).
-const NOTIF_ROUTES = [
-  ['expense', '/expenses'],
-  ['support', '/expenses'],
-  ['deviation', '/calendar'],
-  ['day_comment', '/calendar'],
-  ['todo', '/todos'],
-  ['post', '/messages'],
-];
-const notifHref = type =>
-  NOTIF_ROUTES.find(([prefix]) => (type || '').startsWith(prefix))?.[1] || '/dashboard';
-
 const NAV = [
   ['/dashboard', 'Dashboard'],
   ['/calendar', 'Calendar'],
   ['/messages', 'Messages'],
+  ['/files', 'Files'],
   ['/expenses', 'Expenses'],
   ['/activities', 'Activities'],
   ['/todos', 'To-Dos'],
@@ -38,6 +29,9 @@ export default function Shell({ children }) {
   const router = useRouter();
   const [showNotifs, setShowNotifs] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const meId = store.me?.id;
+
+  useEffect(() => { if (meId) syncPush(meId).catch(() => {}); }, [meId]);
 
   if (store.loading) return <div className="center"><p>Loading Family Phases…</p></div>;
 
@@ -54,6 +48,8 @@ export default function Shell({ children }) {
     }
   }
   async function signOut() {
+    // This device shouldn't keep getting the signed-out person's pushes
+    await disablePush().catch(() => {});
     await supa().auth.signOut();
     router.push('/login');
     router.refresh();

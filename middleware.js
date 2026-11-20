@@ -38,5 +38,5 @@ export async function middleware(request) {
 
 export const config = {
   // API routes handle their own auth (iCal by token, cron/health are public)
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|ico)$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|ico)$).*)'],
 };

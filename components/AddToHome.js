@@ -77,7 +77,10 @@ export default function AddToHome() {
                 <li>Confirm with <b>Add</b> or <b>Install</b>.</li>
               </ol>
             )}
-            <p className="a2hs-note">Family Phases will open full-screen, just like a regular app.</p>
+            <p className="a2hs-note">
+              Family Phases will open full-screen, just like a regular app.
+              {ios && ' On iPhone it’s also the only way to get notifications.'}
+            </p>
           </div>
         </div>
       )}

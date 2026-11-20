@@ -1,12 +1,13 @@
 'use client';
 import { Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore, sideName, mySide, childIdentity, kidName, identityOf, identityLabel, arrName } from '@/lib/store';
 import { supa } from '@/lib/supabase/client';
 import { ArrTabs, useArrSelection, StructureHelp, UnitInput } from '@/components/ui';
 import { toast } from '@/components/Toast';
 import { confirmDelete } from '@/components/Confirm';
 import { PRESETS, PATTERN_LABELS } from '@/lib/custody';
+import { pushSupport, currentSubscription, enablePush, disablePush } from '@/lib/push';
 
 const KIDCOLORS = ['#2563eb', '#16a34a', '#9333ea', '#e11d48', '#0891b2', '#ca8a04'];
 
@@ -47,6 +48,7 @@ export default function SettingsPage() {
       <div className="grid cols-2">
         <div>
           <MyProfile store={store} />
+          <PushSettings me={me} />
           <IdentityCard key={'i' + arr.id} arr={arr} me={me} store={store} />
           {side === 'h' && <General key={'g' + arr.id} arr={arr} store={store} />}
           {side === 'h' && <Children key={'k' + arr.id} arr={arr} store={store} />}
@@ -90,6 +92,83 @@ function MyProfile({ store }) {
       <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
         Shown on comments, to-dos, and anywhere your name appears. Signed in as {store.me?.email}.
       </p>
+    </div>
+  );
+}
+
+// Push for this device only: each phone or browser opts in separately.
+function PushSettings({ me }) {
+  const [support, setSupport] = useState(null);
+  const [perm, setPerm] = useState('default');
+  const [on, setOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const s = pushSupport();
+    setSupport(s);
+    if (s !== 'ok') return;
+    setPerm(Notification.permission);
+    currentSubscription().then(sub => setOn(!!sub && Notification.permission === 'granted'));
+  }, []);
+
+  async function turnOn() {
+    setBusy(true);
+    const { error } = await enablePush(me.id).catch(e => ({ error: e.message }));
+    setPerm(Notification.permission);
+    setBusy(false);
+    if (!error) { setOn(true); toast.success('Notifications are on for this device'); }
+    else if (error !== 'denied' && error !== 'dismissed') toast.error(`Couldn't turn on notifications: ${error}`);
+  }
+  async function turnOff() {
+    setBusy(true);
+    await disablePush().catch(() => {});
+    setOn(false);
+    setBusy(false);
+  }
+  async function test() {
+    const res = await fetch('/api/push/test', { method: 'POST' }).then(r => r.json()).catch(() => null);
+    if (!res?.ok) toast.error(res?.error || 'Couldn’t send a test notification.');
+    else if (!res.sent) toast.error('No devices are subscribed. Try turning notifications off and on.');
+  }
+
+  if (!support || support === 'unconfigured') return null;
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <h2>Notifications</h2>
+      {support === 'needs-install' && (
+        <p className="muted" style={{ fontSize: 13.5 }}>
+          On iPhone and iPad, notifications only work in the Home Screen app. In Safari, tap
+          <b> Share</b>, then <b>Add to Home Screen</b>, open Family Phases from there, and
+          turn notifications on here.
+        </p>
+      )}
+      {support === 'unsupported' && (
+        <p className="muted" style={{ fontSize: 13.5 }}>This browser doesn&apos;t support push notifications.</p>
+      )}
+      {support === 'ok' && perm === 'denied' && (
+        <p className="muted" style={{ fontSize: 13.5 }}>
+          Notifications are blocked for Family Phases on this device. Allow them in your
+          browser or system settings, then reload this page.
+        </p>
+      )}
+      {support === 'ok' && perm !== 'denied' && (
+        <>
+          <p className="push-status">
+            {on ? <><b className="on">On</b> for this device.</> : 'Off for this device.'}{' '}
+            <span className="muted">New messages, replies, and schedule changes arrive as a notification.</span>
+          </p>
+          <div className="row">
+            {on ? (
+              <>
+                <button className="btn subtle" disabled={busy} onClick={turnOff}>Turn off</button>
+                <button className="btn ghost" disabled={busy} onClick={test}>Send a test</button>
+              </>
+            ) : (
+              <button className="btn" disabled={busy} onClick={turnOn}>{busy ? 'Turning on…' : 'Turn on notifications'}</button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

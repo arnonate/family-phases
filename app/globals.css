@@ -306,3 +306,14 @@ footer.site a{color:var(--muted);text-decoration:underline}
   .modal{padding:16px}
   .notif-pop{right:6px;left:6px;width:auto}
 }
+/* files */
+.file-group+.file-group{margin-top:10px}
+.file-group-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:6px 4px 2px}
+.file-row{cursor:pointer}
+.file-thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;flex:none;background:var(--me-softer)}
+.file-thumb.icon{display:flex;align-items:center;justify-content:center;color:var(--slate-blue)}
+.file-row .t-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-preview{display:block;max-width:100%;max-height:65vh;margin:0 auto;border-radius:10px}
+/* notification settings */
+.push-status{font-size:13.5px;margin-bottom:10px}
+.push-status b.on{color:var(--green)}

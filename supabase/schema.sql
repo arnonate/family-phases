@@ -1265,3 +1265,103 @@ begin
     and status = 'approved' and settlement_id is null;
   return sid;
 end $$;
+
+-- ============ PUSH NOTIFICATIONS ============
+-- One row per browser/device a person turned push on for. The app sends to
+-- every subscription of a notification's recipient (see /api/push, driven
+-- by a database webhook on notifications inserts). Dead endpoints are
+-- removed by the server when the push service reports them gone.
+
+create table push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz default now()
+);
+alter table push_subscriptions enable row level security;
+create policy "push subs own" on push_subscriptions for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ============ FILES ============
+-- Shared documents and photos per arrangement (insurance cards, school
+-- forms, photos). Optionally tied to one child. Same visibility as the
+-- message board: both homes read and upload, viewers read, kids never see
+-- it (can_access excludes child logins). Only the uploader deletes.
+-- Objects live at files/<arrangement_id>/<uuid>-<filename>.
+
+create table files (
+  id uuid primary key default gen_random_uuid(),
+  arrangement_id uuid not null references arrangements on delete cascade,
+  child_id uuid references children on delete set null,
+  category text not null default 'Other',
+  name text not null,
+  path text not null,
+  mime text,
+  size bigint,
+  uploaded_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+create index files_arrangement_idx on files (arrangement_id);
+alter table files enable row level security;
+
+create policy "files read" on files for select
+  using (public.can_access_arrangement(arrangement_id));
+create policy "files write" on files for insert
+  with check (public.is_arrangement_member(arrangement_id) and uploaded_by = auth.uid());
+create policy "files delete own" on files for delete using (uploaded_by = auth.uid());
+
+insert into storage.buckets (id, name, public, file_size_limit)
+  values ('files', 'files', false, 20971520);   -- 20 MB
+
+create policy "files objects read" on storage.objects for select
+  using (bucket_id = 'files' and public.can_access_arrangement(((storage.foldername(name))[1])::uuid));
+create policy "files objects write" on storage.objects for insert
+  with check (bucket_id = 'files' and public.is_arrangement_member(((storage.foldername(name))[1])::uuid));
+create policy "files objects delete own" on storage.objects for delete
+  using (bucket_id = 'files' and owner_id = auth.uid()::text);
+
+create or replace function public.trg_file_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public.notify_arrangement(new.arrangement_id, auth.uid(), 'file',
+    public.actor_name() || ' added a file: ' || new.name, new.id);
+  return new;
+end $$;
+create trigger file_notify after insert on files
+  for each row execute function public.trg_file_notify();
+create trigger file_retract after delete on files
+  for each row execute function public.trg_retract_notifications();
+
+alter publication supabase_realtime add table files;
+
+-- ============ PUSH WEBHOOK ============
+-- Each new unread notification is POSTed to the app's /api/push, which
+-- decides whether it warrants a push. The URL and shared secret live in
+-- Vault (push_webhook_url, push_webhook_secret); without them this is a
+-- no-op. Failures never block the write that caused the notification.
+
+create extension if not exists pg_net with schema extensions;
+
+create or replace function public.trg_notification_push()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare url text; secret text;
+begin
+  if new.read then return new; end if;
+  select decrypted_secret into url from vault.decrypted_secrets where name = 'push_webhook_url';
+  select decrypted_secret into secret from vault.decrypted_secrets where name = 'push_webhook_secret';
+  if url is null or secret is null then return new; end if;
+  begin
+    perform net.http_post(
+      url := url,
+      body := jsonb_build_object('type', 'INSERT', 'table', 'notifications', 'record', to_jsonb(new)),
+      headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || secret));
+  exception when others then
+    raise warning 'push webhook failed: %', sqlerrm;
+  end;
+  return new;
+end $$;
+create trigger notification_push after insert on notifications
+  for each row execute function public.trg_notification_push();
